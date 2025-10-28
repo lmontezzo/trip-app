@@ -28,19 +28,18 @@ function doPost(e) {
     var col_D = data.name ? String(data.name) : '';
     var col_E = data.details ? String(data.details) : '';
     var col_F = data.cost ? String(data.cost) : '';
-    var col_G = data.note ? String(data.note) : '';
-    var col_H = data.link ? String(data.link) : '';
-    var col_I = data.category ? String(data.category) : 'Others';
-    var col_J = data.location ? String(data.location) : '';
-    var col_K = data.time ? String(data.time) : '';
+    var col_G = data.link ? String(data.link) : '';
+    var col_H = data.category ? String(data.category) : 'Others';
+    var col_I = data.location ? String(data.location) : '';
+    var col_J = data.time ? String(data.time) : '';
 
     Logger.log('COL A (Date): "' + col_A + '"');
     Logger.log('COL B (DayNumber): "' + col_B + '"');
-    Logger.log('COL I (Category): "' + col_I + '"');
-    Logger.log('COL K (Time): "' + col_K + '"');
+    Logger.log('COL H (Category): "' + col_H + '"');
+    Logger.log('COL J (Time): "' + col_J + '"');
 
-    // Create array (11 columns now)
-    var rowData = [col_A, col_B, col_C, col_D, col_E, col_F, col_G, col_H, col_I, col_J, col_K];
+    // Create array (10 columns now - Note column removed)
+    var rowData = [col_A, col_B, col_C, col_D, col_E, col_F, col_G, col_H, col_I, col_J];
 
     Logger.log('FINAL ROW DATA: ' + JSON.stringify(rowData));
     Logger.log('Array length: ' + rowData.length);
@@ -56,13 +55,12 @@ function doPost(e) {
     sheet.getRange(targetRow, 4).setValue(col_D);  // D: ActivityName
     sheet.getRange(targetRow, 5).setValue(col_E);  // E: ActivityDetails
     sheet.getRange(targetRow, 6).setValue(col_F);  // F: Cost
-    sheet.getRange(targetRow, 7).setValue(col_G);  // G: Note
-    sheet.getRange(targetRow, 8).setValue(col_H);  // H: Link
-    sheet.getRange(targetRow, 9).setValue(col_I);  // I: Category
-    sheet.getRange(targetRow, 10).setValue(col_J); // J: Location
-    sheet.getRange(targetRow, 11).setValue(col_K); // K: Time
+    sheet.getRange(targetRow, 7).setValue(col_G);  // G: Link
+    sheet.getRange(targetRow, 8).setValue(col_H);  // H: Category
+    sheet.getRange(targetRow, 9).setValue(col_I);  // I: Location
+    sheet.getRange(targetRow, 10).setValue(col_J); // J: Time
 
-    Logger.log('✅ All 11 cells written individually!');
+    Logger.log('✅ All 10 cells written individually!');
 
     // Return success response
     return ContentService
@@ -96,10 +94,10 @@ function doGet(e) {
         'D: ActivityName',
         'E: ActivityDetails',
         'F: Cost',
-        'G: Note',
-        'H: Link',
-        'I: Category',
-        'J: Location'
+        'G: Link',
+        'H: Category',
+        'I: Location',
+        'J: Time'
       ]
     }))
     .setMimeType(ContentService.MimeType.JSON);
@@ -130,11 +128,10 @@ function testAddRow() {
     testData.name,              // D: ActivityName
     testData.details,           // E: ActivityDetails
     testData.cost,              // F: Cost
-    testData.note,              // G: Note
-    testData.link,              // H: Link
-    testData.category,          // I: Category
-    testData.location,          // J: Location
-    testData.time || '14:30'    // K: Time
+    testData.link,              // G: Link
+    testData.category,          // H: Category
+    testData.location,          // I: Location
+    testData.time || '14:30'    // J: Time
   ];
 
   Logger.log('Test row data: ' + JSON.stringify(rowData));

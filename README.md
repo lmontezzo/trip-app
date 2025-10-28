@@ -106,13 +106,12 @@ Your Google Sheet should have these columns (in this exact order):
 | B | DayNumber | Number | Yes | 30, 1, 2 |
 | C | DayTitle | Text | Yes | Arrival Day - October 30 |
 | D | ActivityName | Text | Yes | ✈️ Flight: Panama → Orlando |
-| E | ActivityDetails | Text | No | Alamo - Terminal C |
+| E | ActivityDetails | Text | No | Alamo - Terminal C • Confirmation #123456 |
 | F | Cost | Number | No | 1600, 270.68 |
-| G | Note | Text | No | Confirmation #123456 |
-| H | Link | URL | No | https://... |
-| I | Category | Text | No | Parks, Food, Hotels, Car, Flights, Shopping, Others |
-| J | Location | Text | No | Magic Kingdom, Orlando, FL |
-| K | Time | HH:MM | No | 14:00 |
+| G | Link | URL | No | https://... |
+| H | Category | Text | No | Parks, Food, Hotels, Car, Flights, Shopping, Others |
+| I | Location | Text | No | Magic Kingdom, Orlando, FL |
+| J | Time | HH:MM | No | 14:00 |
 
 **Note:** Make sure your Apps Script sheet name matches your actual sheet tab (default is 'Sheet1' in `google-apps-script.js` line 8).
 
@@ -127,9 +126,8 @@ Your Google Sheet should have these columns (in this exact order):
    - **Time** - Optional, for scheduling and Next Activity
    - **Activity Name** - What you did (e.g., "🍕 Lunch at...")
    - **Category** - Select from dropdown
-   - **Details** - Location, time, notes (optional)
+   - **Details** - Location, time, confirmations, notes (optional)
    - **Cost** - Amount spent
-   - **Note** - Additional notes (optional)
    - **Link** - Reservation/ticket URL (optional)
    - **Location** - Address for navigation (optional)
 3. Click **"Add & Sync"**

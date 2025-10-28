@@ -525,6 +525,7 @@
 
         input[type="text"],
         input[type="date"],
+        input[type="time"],
         textarea,
         select {
             width: 100%;
@@ -540,6 +541,7 @@
 
         input[type="text"]:focus,
         input[type="date"]:focus,
+        input[type="time"]:focus,
         textarea:focus,
         select:focus {
             outline: none;
@@ -548,12 +550,14 @@
             box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
         }
 
-        input[type="date"]::-webkit-calendar-picker-indicator {
+        /* Calendar and time picker icons */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
             filter: invert(0.7) sepia(1) saturate(5) hue-rotate(220deg);
             cursor: pointer;
         }
 
-        /* Dark theme for date picker calendar */
+        /* Dark theme for date picker */
         input[type="date"]::-webkit-datetime-edit-fields-wrapper {
             color: #e5e7eb;
         }
@@ -565,6 +569,21 @@
         input[type="date"]::-webkit-datetime-edit-month-field,
         input[type="date"]::-webkit-datetime-edit-day-field,
         input[type="date"]::-webkit-datetime-edit-year-field {
+            color: #e5e7eb;
+        }
+
+        /* Dark theme for time picker */
+        input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+            color: #e5e7eb;
+        }
+
+        input[type="time"]::-webkit-datetime-edit-text {
+            color: #9ca3af;
+        }
+
+        input[type="time"]::-webkit-datetime-edit-hour-field,
+        input[type="time"]::-webkit-datetime-edit-minute-field,
+        input[type="time"]::-webkit-datetime-edit-ampm-field {
             color: #e5e7eb;
         }
 
@@ -774,11 +793,7 @@
             </div>
             <div class="form-group">
                 <label>Cost</label>
-                <input type="text" id="addCost" placeholder="25.50">
-            </div>
-            <div class="form-group">
-                <label>Note (optional)</label>
-                <textarea id="addNote" placeholder="Any additional notes..."></textarea>
+                <input type="text" id="addCost" placeholder="25.50" inputmode="decimal" pattern="[0-9]*\.?[0-9]*">
             </div>
             <div class="form-group">
                 <label>Link (optional)</label>
@@ -912,8 +927,8 @@
                 }
                 fields.push(current.trim());
 
-                // Now CSV has: Date, DayNumber, DayTitle, ActivityName, ActivityDetails, Cost, Note, Link, Category, Location, Time
-                const [dateStr, dayNumber, dayTitle, activityName, activityDetails, cost, note, link, category, location, time] = fields;
+                // Now CSV has: Date, DayNumber, DayTitle, ActivityName, ActivityDetails, Cost, Link, Category, Location, Time
+                const [dateStr, dayNumber, dayTitle, activityName, activityDetails, cost, link, category, location, time] = fields;
 
                 if (!dayNumber || !dateStr) continue;
 
@@ -937,7 +952,6 @@
                         name: activityName,
                         details: activityDetails || '',
                         cost: cost || '',
-                        note: note || '',
                         link: link || '',
                         category: category || 'Others',
                         location: location || '',
@@ -1237,7 +1251,6 @@
             document.getElementById('addCategory').value = activity.category || '';
             document.getElementById('addDetails').value = activity.details || '';
             document.getElementById('addCost').value = activity.cost || '';
-            document.getElementById('addNote').value = activity.note || '';
             document.getElementById('addLink').value = activity.link || '';
             document.getElementById('addLocation').value = activity.location || '';
 
@@ -1380,7 +1393,6 @@
                             ${timeHTML}
                             ${activity.details ? `<div class="activity-details">${activity.details}</div>` : ''}
                             ${costHTML}
-                            ${activity.note ? `<div class="note">${activity.note}</div>` : ''}
                             ${activity.link ? `<a href="${activity.link}" class="link" target="_blank">Link →</a>` : ''}
                             ${directionsHTML}
                         </div>
@@ -1440,7 +1452,6 @@
             document.getElementById('addCategory').value = '';
             document.getElementById('addDetails').value = '';
             document.getElementById('addCost').value = '';
-            document.getElementById('addNote').value = '';
             document.getElementById('addLink').value = '';
             document.getElementById('addLocation').value = '';
 
@@ -1484,7 +1495,6 @@
                 category: data.category || 'Others',
                 details: data.details || '',
                 cost: data.cost || '',
-                note: data.note || '',
                 link: data.link || '',
                 location: data.location || '',
                 time: data.time || ''
@@ -1524,7 +1534,6 @@
             const categoryInput = document.getElementById('addCategory').value;
             const detailsInput = document.getElementById('addDetails').value.trim();
             const costInput = document.getElementById('addCost').value.trim();
-            const noteInput = document.getElementById('addNote').value.trim();
             const linkInput = document.getElementById('addLink').value.trim();
             const locationInput = document.getElementById('addLocation').value.trim();
 
@@ -1578,11 +1587,10 @@
                 name: nameInput,                          // D: ActivityName
                 details: detailsInput,                    // E: ActivityDetails
                 cost: costInput,                          // F: Cost
-                note: noteInput,                          // G: Note
-                link: linkInput,                          // H: Link
-                category: categoryInput || 'Others',      // I: Category
-                location: locationInput,                  // J: Location
-                time: timeInput,                          // K: Time (HH:MM)
+                link: linkInput,                          // G: Link
+                category: categoryInput || 'Others',      // H: Category
+                location: locationInput,                  // I: Location
+                time: timeInput,                          // J: Time (HH:MM)
                 dateObj: dateObj                          // For local use only
             };
 
@@ -1596,10 +1604,10 @@
             console.log('Column D (ActivityName):', data.name);
             console.log('Column E (ActivityDetails):', data.details);
             console.log('Column F (Cost):', data.cost);
-            console.log('Column G (Note):', data.note);
-            console.log('Column H (Link):', data.link);
-            console.log('Column I (Category):', data.category);
-            console.log('Column J (Location):', data.location);
+            console.log('Column G (Link):', data.link);
+            console.log('Column H (Category):', data.category);
+            console.log('Column I (Location):', data.location);
+            console.log('Column J (Time):', data.time);
             console.log('═══════════════════════════════════════');
 
             // Validate required fields
@@ -1629,7 +1637,6 @@
                     category: categoryInput || 'Others',
                     details: detailsInput,
                     cost: costInput,
-                    note: noteInput,
                     link: linkInput,
                     location: locationInput,
                     time: timeInput
@@ -1665,7 +1672,6 @@
                     name: String(nameInput),
                     details: String(detailsInput),
                     cost: String(costInput),
-                    note: String(noteInput),
                     link: String(linkInput),
                     category: String(categoryInput || 'Others'),
                     location: String(locationInput),
@@ -1682,10 +1688,10 @@
                 console.log('4. name:', payload.name);
                 console.log('5. details:', payload.details);
                 console.log('6. cost:', payload.cost);
-                console.log('7. note:', payload.note);
-                console.log('8. link:', payload.link);
-                console.log('9. category:', payload.category);
-                console.log('10. location:', payload.location);
+                console.log('7. link:', payload.link);
+                console.log('8. category:', payload.category);
+                console.log('9. location:', payload.location);
+                console.log('10. time:', payload.time);
                 console.log('═══════════════════════════════════════');
                 console.log('JSON:', JSON.stringify(payload));
                 console.log('═══════════════════════════════════════');
