@@ -8,9 +8,10 @@
     <meta name="apple-mobile-web-app-title" content="Orlando Trip">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#6366f1">
-    <link rel="manifest" href="manifest.json">
     <title>🏰 Orlando Trip</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏰</text></svg>">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <style>
         * {
             margin: 0;
@@ -1039,7 +1040,10 @@
             </div>
             <div class="form-group">
                 <label>Cost</label>
-                <input type="text" id="addCost" placeholder="25.50" inputmode="decimal" pattern="[0-9]*\.?[0-9]*">
+                <input type="text" id="addCost" placeholder="25.50" inputmode="numeric" pattern="[0-9]*\.?[0-9]*">
+                <small style="color: #9ca3af; font-size: 11px; margin-top: 4px; display: block;">
+                    💡 Use period (.) for decimals: 25.50
+                </small>
             </div>
             <div class="form-group">
                 <label>Link (optional)</label>
@@ -2047,6 +2051,16 @@
 
             // Sort days by date
             const sortedDays = Object.values(data.days).sort((a, b) => a.sortKey - b.sortKey);
+
+            // Sort activities by time within each day
+            sortedDays.forEach(day => {
+                day.activities.sort((a, b) => {
+                    if (!a.time && !b.time) return 0;
+                    if (!a.time) return 1;
+                    if (!b.time) return -1;
+                    return a.time.localeCompare(b.time);
+                });
+            });
 
             return { days: sortedDays };
         }
