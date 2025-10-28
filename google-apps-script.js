@@ -131,33 +131,45 @@ function updateChecklistItem(sheet, data) {
   var itemName = data.itemName;
   var isDone = data.isDone;
 
+  Logger.log('🔍 UPDATE REQUEST - List: "' + listName + '", Category: "' + category + '", Item: "' + itemName + '", isDone: ' + isDone);
+
   // Find the row
   var dataRange = sheet.getDataRange();
   var values = dataRange.getValues();
 
+  Logger.log('📊 Total rows in sheet: ' + values.length);
+
   for (var i = 1; i < values.length; i++) {
-    if (values[i][0] === listName &&
-        values[i][1] === category &&
-        values[i][2] === itemName) {
+    var rowList = values[i][0];
+    var rowCategory = values[i][1];
+    var rowItem = values[i][2];
 
-      // Update isDone status
-      sheet.getRange(i + 1, 4).setValue(String(isDone));
+    if (rowList === listName &&
+        rowCategory === category &&
+        rowItem === itemName) {
 
-      Logger.log('✅ Updated item: ' + itemName + ' -> isDone: ' + isDone);
+      // Update isDone status - keep lowercase to match CSV format
+      var isDoneValue = String(isDone).toLowerCase();
+      sheet.getRange(i + 1, 4).setValue(isDoneValue);
+
+      Logger.log('✅ FOUND & UPDATED at row ' + (i + 1) + ': ' + itemName + ' -> isDone: ' + isDoneValue);
 
       return ContentService
         .createTextOutput(JSON.stringify({
           success: true,
-          message: 'Item updated'
+          message: 'Item updated',
+          row: i + 1
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
   }
 
+  Logger.log('❌ ITEM NOT FOUND - Searched ' + (values.length - 1) + ' rows');
+
   return ContentService
     .createTextOutput(JSON.stringify({
       success: false,
-      error: 'Item not found'
+      error: 'Item not found: ' + itemName
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }

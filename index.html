@@ -1102,7 +1102,7 @@
 
                 data.lists[listName].categories[category].push({
                     name: itemName,
-                    isDone: isDone === 'true'
+                    isDone: String(isDone).toLowerCase() === 'true'
                 });
             }
 
@@ -1189,13 +1189,24 @@
                     });
                 });
 
+                const listMenuId = `list-menu-${listIndex}`;
+
                 listSection.innerHTML = `
                     <div class="day-header" onclick="toggleList(${listIndex})">
-                        <div style="display: flex; align-items: center; flex: 1;">
-                            <div class="day-number">${list.name.split(' ')[0]}</div>
-                            <span style="flex: 1; margin-left: 15px;">${list.name}</span>
-                            <span class="list-progress">${progress}% ✓</span>
-                            <button class="delete-list-btn" onclick="deleteList(${listIndex}, event)">🗑️ Delete List</button>
+                        <div style="display: flex; align-items: center; flex: 1; gap: 12px;">
+                            <div class="day-number" style="min-width: 60px;">${progress}%</div>
+                            <span style="flex: 1;">${list.name}</span>
+                            <div class="activity-menu" style="position: relative;">
+                                <button class="menu-btn" onclick="toggleMenu('${listMenuId}', event)">⋮</button>
+                                <div class="menu-dropdown" id="${listMenuId}">
+                                    <div class="menu-item" onclick="editListName(${listIndex}, event)">
+                                        ✏️ Edit List Name
+                                    </div>
+                                    <div class="menu-item delete" onclick="deleteList(${listIndex}, event)">
+                                        🗑️ Delete List
+                                    </div>
+                                </div>
+                            </div>
                             <span class="arrow">▼</span>
                         </div>
                     </div>
@@ -1213,27 +1224,61 @@
             listSection.classList.toggle('collapsed');
         }
 
-        async function toggleChecklistItem(listIndex, category, itemIndex) {
+        function editListName(listIndex, event) {
+            event.stopPropagation();
+
+            const list = checklistData.lists[listIndex];
+            const newName = prompt('Enter new list name:', list.name);
+
+            if (!newName || newName.trim() === '' || newName === list.name) return;
+
+            const oldName = list.name;
+            list.name = newName.trim();
+
+            // Save to localStorage
+            localStorage.setItem('checklistCache', JSON.stringify(checklistData));
+
+            renderChecklists();
+
+            // Show success message
+            const errorDiv = document.getElementById('checklistError');
+            errorDiv.innerHTML = `<div class="success-message">✅ List renamed!</div>`;
+            setTimeout(() => errorDiv.innerHTML = '', 2000);
+
+            console.log(`✏️ List renamed from "${oldName}" to "${newName}"`);
+            console.log('Note: This change is local only. To sync to Sheets, manually update the ListName column.');
+        }
+
+        function toggleChecklistItem(listIndex, category, itemIndex) {
             const list = checklistData.lists[listIndex];
             const item = list.categories[category][itemIndex];
 
             item.isDone = !item.isDone;
 
-            // Save to localStorage
+            // Save to localStorage immediately
             localStorage.setItem('checklistCache', JSON.stringify(checklistData));
 
-            // Sync to Google Sheets
+            // Update UI immediately (fast!)
+            renderChecklists();
+
+            // Sync to Google Sheets in background (async, non-blocking)
+            syncChecklistItemToSheets(list.name, category, item.name, item.isDone);
+        }
+
+        async function syncChecklistItemToSheets(listName, category, itemName, isDone) {
             try {
                 const payload = {
                     type: 'checklist',
                     action: 'update',
-                    listName: list.name,
+                    listName: listName,
                     category: category,
-                    itemName: item.name,
-                    isDone: item.isDone
+                    itemName: itemName,
+                    isDone: String(isDone)  // Convert boolean to string "true" or "false"
                 };
 
-                await fetch(APPS_SCRIPT_URL, {
+                console.log('📤 Syncing checklist to Sheets:', payload);
+
+                const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
@@ -1242,10 +1287,8 @@
 
                 console.log('✅ Checklist item synced to Google Sheets');
             } catch (error) {
-                console.error('Failed to sync checklist item:', error);
+                console.error('❌ Failed to sync checklist item:', error);
             }
-
-            renderChecklists();
         }
 
         async function deleteChecklistItem(listIndex, category, itemIndex) {
