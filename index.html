@@ -295,6 +295,8 @@
             cursor: pointer;
             transition: all 0.3s;
             backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 10;
         }
 
         .day-header:hover {
@@ -358,6 +360,7 @@
 
         .activity-menu {
             position: relative;
+            z-index: 100;
         }
 
         .menu-btn {
@@ -386,7 +389,7 @@
             border: 1px solid rgba(138, 106, 255, 0.3);
             border-radius: 8px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            z-index: 1000;
+            z-index: 2000;
             min-width: 120px;
             margin-top: 4px;
         }
@@ -1110,9 +1113,11 @@
         }
 
         async function loadChecklistData(forceRefresh = false) {
+            const button = document.getElementById('refreshButton');
             const errorDiv = document.getElementById('checklistError');
             const statusDiv = document.getElementById('checklistSyncStatus');
 
+            button.classList.add('loading');
             errorDiv.innerHTML = '';
 
             try {
@@ -1149,6 +1154,8 @@
             } catch (error) {
                 console.error('Error loading checklist:', error);
                 errorDiv.innerHTML = '<div class="error-message">❌ Failed to load checklists. Check CSV URL.</div>';
+            } finally {
+                button.classList.remove('loading');
             }
         }
 
