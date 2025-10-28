@@ -1040,10 +1040,7 @@
             </div>
             <div class="form-group">
                 <label>Cost</label>
-                <input type="text" id="addCost" placeholder="25.50" inputmode="numeric" pattern="[0-9]*\.?[0-9]*">
-                <small style="color: #9ca3af; font-size: 11px; margin-top: 4px; display: block;">
-                    💡 Use period (.) for decimals: 25.50
-                </small>
+                <input type="text" id="addCost" placeholder="25.50" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*">
             </div>
             <div class="form-group">
                 <label>Link (optional)</label>
@@ -2637,7 +2634,7 @@
             const nameInput = document.getElementById('addName').value.trim();
             const categoryInput = document.getElementById('addCategory').value;
             const detailsInput = document.getElementById('addDetails').value.trim();
-            const costInput = document.getElementById('addCost').value.trim();
+            const costInput = document.getElementById('addCost').value.trim().replace(',', '.');  // Convert comma to period for decimals
             const linkInput = document.getElementById('addLink').value.trim();
             const locationInput = document.getElementById('addLocation').value.trim();
 
