@@ -12,11 +12,17 @@
             box-sizing: border-box;
         }
 
+        html {
+            overflow-x: hidden;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             padding: 20px 10px;
+            padding-bottom: 90px;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         .container {
@@ -27,6 +33,7 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
             overflow: hidden;
             border: 1px solid rgba(138, 106, 255, 0.2);
+            margin-bottom: 20px;
         }
 
         .header {
@@ -176,51 +183,95 @@
             margin-top: 8px;
         }
 
-        .action-buttons {
+        .bottom-nav {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(30, 30, 46, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(138, 106, 255, 0.2);
+            padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-btn {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            z-index: 1000;
-        }
-
-        .action-btn {
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            color: white;
-            border: none;
-            border-radius: 16px;
-            font-size: 24px;
-            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
             align-items: center;
             justify-content: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 8px 16px;
+            transition: all 0.3s;
+            font-size: 24px;
+            border-radius: 12px;
+            min-width: 70px;
         }
 
-        .action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5);
+        .nav-btn-label {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .action-btn:active {
+        .nav-btn:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: #a78bfa;
+        }
+
+        .nav-btn:active {
             transform: scale(0.95);
         }
 
-        .action-btn.add {
+        .nav-btn.active {
+            color: #a855f7;
+            background: rgba(99, 102, 241, 0.15);
+        }
+
+        .nav-btn.add-btn {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            padding: 0;
+            margin-top: -20px;
             box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+            font-size: 28px;
+            min-width: 56px;
         }
 
-        .action-btn.add:hover {
+        .nav-btn.add-btn:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
             box-shadow: 0 12px 32px rgba(16, 185, 129, 0.5);
+            transform: translateY(-2px);
         }
 
-        .action-btn.loading {
+        .nav-btn.add-btn .nav-btn-label {
+            display: none;
+        }
+
+        .nav-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .nav-btn.disabled:hover {
+            background: none;
+            color: #9ca3af;
+            transform: none;
+        }
+
+        .nav-btn.loading {
             animation: spin 1s linear infinite;
         }
 
@@ -478,11 +529,12 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.8);
             z-index: 2000;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 20px 10px;
+            overflow-y: auto;
         }
 
         .modal.active {
@@ -743,9 +795,23 @@
         </div>
     </div>
 
-    <div class="action-buttons">
-        <button class="action-btn" id="refreshButton" onclick="loadFromSheets(true)">🔄</button>
-        <button class="action-btn add" onclick="openAddModal()">➕</button>
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-nav">
+        <button class="nav-btn" id="refreshButton" onclick="loadFromSheets(true)">
+            <span>🔄</span>
+            <span class="nav-btn-label">Refresh</span>
+        </button>
+        <button class="nav-btn active">
+            <span>📅</span>
+            <span class="nav-btn-label">Activities</span>
+        </button>
+        <button class="nav-btn add-btn" onclick="openAddModal()">
+            <span>➕</span>
+        </button>
+        <button class="nav-btn disabled" onclick="alert('Checklist feature coming soon! 📝')">
+            <span>✓</span>
+            <span class="nav-btn-label">Checklist</span>
+        </button>
     </div>
 
     <!-- Add Modal -->
