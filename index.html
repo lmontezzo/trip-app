@@ -1116,7 +1116,7 @@
             errorDiv.innerHTML = '';
 
             try {
-                const response = await fetch(CHECKLIST_CSV_URL + '?t=' + Date.now());
+                const response = await fetch(CHECKLIST_CSV_URL + '&t=' + Date.now());
                 const csv = await response.text();
 
                 checklistData = parseChecklistCSV(csv);
