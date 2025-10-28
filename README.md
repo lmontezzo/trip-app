@@ -192,10 +192,21 @@ Your Google Sheet should have these columns (in this exact order):
 
 ### Full-Screen Mode (Recommended)
 
+**Important:** Full-screen mode **only works** when the app is opened from the home screen icon!
+
 **For the best experience:**
-1. Add app to home screen (see instructions above)
-2. Open from home screen icon (not Safari/Chrome)
-3. Enjoy full-screen with no browser UI! 🎉
+1. **Add app to home screen** (see instructions above)
+2. **Close your browser completely** (Safari/Chrome)
+3. **Open from the home screen icon** (the 🏰 icon you just added)
+4. ✨ **Full-screen activated!** - No address bar, no browser buttons
+
+**Why it doesn't work in the browser:**
+- Opening in Safari/Chrome → Shows browser UI (normal)
+- Opening from home screen → Full-screen standalone app mode
+
+**To test:**
+- ❌ Don't test in Safari/Chrome tab
+- ✅ Add to home screen first, then open from there
 
 ## 🛠️ Tech Stack
 

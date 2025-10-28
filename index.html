@@ -8,6 +8,7 @@
     <meta name="apple-mobile-web-app-title" content="Orlando Trip">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#6366f1">
+    <link rel="manifest" href="manifest.json">
     <title>Orlando Trip</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏰</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏰</text></svg>">
@@ -194,6 +195,7 @@
             bottom: 0;
             left: 0;
             right: 0;
+            width: 100%;
             background: rgba(30, 30, 46, 0.95);
             backdrop-filter: blur(20px);
             border-top: 1px solid rgba(138, 106, 255, 0.2);
@@ -201,13 +203,8 @@
             display: flex;
             justify-content: space-evenly;
             align-items: center;
-            gap: 20px;
             z-index: 1000;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
-            margin: 0 auto;
-            left: 50%;
-            transform: translateX(-50%);
         }
 
         .nav-btn {
