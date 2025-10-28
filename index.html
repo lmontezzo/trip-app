@@ -2,9 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Orlando Trip">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6366f1">
     <title>🏰 Orlando Trip</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏰</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏰</text></svg>">
     <style>
         * {
             margin: 0;
@@ -193,10 +199,15 @@
             border-top: 1px solid rgba(138, 106, 255, 0.2);
             padding: 8px 0 max(8px, env(safe-area-inset-bottom));
             display: flex;
-            justify-content: space-around;
+            justify-content: space-evenly;
             align-items: center;
+            gap: 20px;
             z-index: 1000;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            margin: 0 auto;
+            left: 50%;
+            transform: translateX(-50%);
         }
 
         .nav-btn {
@@ -209,11 +220,12 @@
             border: none;
             color: #9ca3af;
             cursor: pointer;
-            padding: 8px 16px;
+            padding: 10px 20px;
             transition: all 0.3s;
-            font-size: 24px;
+            font-size: 26px;
             border-radius: 12px;
-            min-width: 70px;
+            min-width: 80px;
+            flex: 1;
         }
 
         .nav-btn-label {
@@ -878,9 +890,38 @@
             background: rgba(239, 68, 68, 0.2);
             color: #ef4444;
         }
+
+        /* Pull to Refresh */
+        .pull-to-refresh {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(-60px);
+            background: rgba(99, 102, 241, 0.95);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 3000;
+            transition: transform 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .pull-to-refresh.visible {
+            transform: translateX(-50%) translateY(20px);
+        }
+
+        .pull-to-refresh.refreshing {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
     </style>
 </head>
 <body>
+    <!-- Pull to Refresh Indicator -->
+    <div class="pull-to-refresh" id="pullToRefreshIndicator">🔄 Pull to refresh</div>
+
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content">
             <div class="loading-spinner">⏳</div>
@@ -936,10 +977,6 @@
 
     <!-- Bottom Navigation Bar -->
     <div class="bottom-nav">
-        <button class="nav-btn" id="refreshButton" onclick="refreshCurrentView()">
-            <span>🔄</span>
-            <span class="nav-btn-label">Refresh</span>
-        </button>
         <button class="nav-btn active" id="activitiesTab" onclick="switchToActivities()">
             <span>📅</span>
             <span class="nav-btn-label">Activities</span>
@@ -1069,6 +1106,55 @@
         let lastUpdate = null;
         let lastAddedTime = null;
 
+        // PULL TO REFRESH
+        let pullStartY = 0;
+        let isPulling = false;
+        const pullThreshold = 80;
+
+        function initPullToRefresh() {
+            let pullDistance = 0;
+            const indicator = document.getElementById('pullToRefreshIndicator');
+
+            document.addEventListener('touchstart', (e) => {
+                if (window.scrollY === 0) {
+                    pullStartY = e.touches[0].clientY;
+                    isPulling = true;
+                }
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!isPulling || window.scrollY > 0) return;
+
+                const touchY = e.touches[0].clientY;
+                pullDistance = touchY - pullStartY;
+
+                if (pullDistance > 0 && pullDistance < pullThreshold * 2) {
+                    indicator.classList.add('visible');
+                    indicator.textContent = pullDistance > pullThreshold ? '🔄 Release to refresh' : '🔄 Pull to refresh';
+                }
+            });
+
+            document.addEventListener('touchend', async (e) => {
+                if (!isPulling) return;
+
+                if (pullDistance > pullThreshold) {
+                    indicator.textContent = '⏳ Refreshing...';
+                    indicator.classList.add('refreshing');
+                    
+                    await refreshCurrentView();
+                    
+                    setTimeout(() => {
+                        indicator.classList.remove('visible', 'refreshing');
+                    }, 500);
+                } else {
+                    indicator.classList.remove('visible');
+                }
+
+                isPulling = false;
+                pullDistance = 0;
+            });
+        }
+
         // VIEW SWITCHING FUNCTIONS
         function switchToActivities() {
             currentView = 'activities';
@@ -1091,11 +1177,11 @@
             }
         }
 
-        function refreshCurrentView() {
+        async function refreshCurrentView() {
             if (currentView === 'activities') {
-                loadFromSheets(true);
+                await loadFromSheets(true);
             } else {
-                loadChecklistData(true);
+                await loadChecklistData(true);
             }
         }
 
@@ -1150,11 +1236,9 @@
         }
 
         async function loadChecklistData(forceRefresh = false) {
-            const button = document.getElementById('refreshButton');
             const errorDiv = document.getElementById('checklistError');
             const statusDiv = document.getElementById('checklistSyncStatus');
 
-            button.classList.add('loading');
             errorDiv.innerHTML = '';
 
             try {
@@ -1194,8 +1278,6 @@
             } catch (error) {
                 console.error('Error loading checklist:', error);
                 errorDiv.innerHTML = '<div class="error-message">❌ Failed to load checklists. Check CSV URL.</div>';
-            } finally {
-                button.classList.remove('loading');
             }
         }
 
@@ -2754,10 +2836,17 @@
 
         // Initialize
         window.addEventListener('load', () => {
+            console.log('🚀 Orlando Trip App Starting...');
+            
+            // Initialize pull-to-refresh
+            initPullToRefresh();
+            console.log('✅ Pull-to-refresh enabled');
+            
             // Start Orlando clock
             updateOrlandoClock();
             setInterval(updateOrlandoClock, 1000); // Update every second
 
+            // Load cached trip data
             const cached = localStorage.getItem('orlandoTripCache');
             if (cached) {
                 tripData = JSON.parse(cached);
@@ -2767,11 +2856,15 @@
                 updateSyncStatus();
             }
 
+            // Auto-load activities from Google Sheets
+            console.log('📥 Loading activities from Google Sheets...');
             loadFromSheets();
 
-            // Auto-refresh every 2 minutes to see updates from other phones
+            // Auto-refresh activities every 2 minutes
             setInterval(() => {
-                loadFromSheets();
+                if (currentView === 'activities') {
+                    loadFromSheets();
+                }
             }, 2 * 60 * 1000);
 
             // Update sync status every minute

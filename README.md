@@ -14,7 +14,10 @@ A beautiful, real-time expense tracking app for vacation planning. Track expense
 - 🗺️ **Built-in navigation** - One-tap directions to activities (Google Maps/Waze)
 - ⏰ **Next activity preview** - See what's coming up next
 - 🎯 **Category organization** - Parks, Food, Hotels, Car, Flights, Shopping, Others
+- ✓ **Packing checklists** - Track what's packed with drag-to-reorder
+- 🔄 **Pull-to-refresh** - Native iOS/Android swipe-down to refresh
 - 🌙 **Beautiful dark theme** - Purple/blue gradient design
+- 📱 **PWA ready** - Install as full-screen app (no browser UI)
 - 📡 **Offline support** - Works without internet, syncs when back online
 - 💯 **100% Free** - No monthly costs, uses Google Sheets as database
 
@@ -85,16 +88,28 @@ Replace with your actual URLs from steps 1 and 2.
 7. Wait 1-2 minutes for deployment
 8. Your app will be live at: `https://YOUR_USERNAME.github.io/trip-app/`
 
-### 5. Add to Mobile Home Screen
+### 5. Add to Mobile Home Screen (Full-Screen Mode)
 
-**iPhone:**
-1. Open in Safari
-2. Tap Share button
-3. "Add to Home Screen"
+**iPhone (Safari):**
+1. Open your app URL in Safari
+2. Tap the **Share** button (square with arrow)
+3. Scroll and tap **"Add to Home Screen"**
+4. Tap **"Add"**
+5. **Open from home screen** (not from Safari!)
+6. ✨ **Full-screen mode activated!** - No Safari UI, just your app
 
-**Android:**
+**Android (Chrome):**
 1. Open in Chrome
-2. Menu (⋮) → "Add to Home screen"
+2. Menu (⋮) → **"Add to Home screen"**
+3. Tap **"Add"**
+4. Open from home screen
+5. ✨ Full-screen mode!
+
+**Why add to home screen?**
+- 🖼️ **Full-screen** - No browser UI (address bar, buttons)
+- 📱 **App-like experience** - Looks like a native app
+- ⚡ **Faster access** - Icon on your home screen
+- 🔄 **Pull-to-refresh** - Works natively
 
 ## 📊 Google Sheet Structure
 
@@ -156,6 +171,31 @@ Your Google Sheet should have these columns (in this exact order):
 2. A **Directions** button appears on that activity
 3. Choose **Google Maps** or **Waze** in the header
 4. Tap the **Directions** button to navigate
+
+### Checklists
+
+1. Tap the **✓ Checklist** tab at bottom
+2. Expand any list (luggage, documents, etc.)
+3. **Check items** as you pack - instant sync!
+4. **Drag ☰ handle** to reorder items within categories
+5. **⋮ Menu** to edit item name or delete
+6. **Add items** with the ➕ button
+7. All changes sync to Google Sheets automatically
+
+### Pull-to-Refresh
+
+1. Scroll to the **top** of Activities or Checklist view
+2. **Pull down** on the screen
+3. See "🔄 Release to refresh" indicator
+4. **Release** to refresh data
+5. Works like native iOS/Android apps!
+
+### Full-Screen Mode (Recommended)
+
+**For the best experience:**
+1. Add app to home screen (see instructions above)
+2. Open from home screen icon (not Safari/Chrome)
+3. Enjoy full-screen with no browser UI! 🎉
 
 ## 🛠️ Tech Stack
 
