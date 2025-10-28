@@ -753,6 +753,91 @@
             font-size: 40px;
             animation: spin 1s linear infinite;
         }
+
+        /* Checklist Specific Styles */
+        .checklist-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(138, 106, 255, 0.08);
+            background: rgba(30, 30, 46, 0.5);
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .checklist-item:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .checklist-checkbox {
+            width: 22px;
+            height: 22px;
+            min-width: 22px;
+            border: 2px solid rgba(138, 106, 255, 0.4);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            background: rgba(30, 30, 46, 0.8);
+        }
+
+        .checklist-checkbox.checked {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-color: #10b981;
+        }
+
+        .checklist-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .checklist-item-text {
+            flex: 1;
+            color: #e5e7eb;
+            font-size: 14px;
+        }
+
+        .checklist-item.checked .checklist-item-text {
+            color: #6b7280;
+            text-decoration: line-through;
+        }
+
+        .list-progress {
+            font-size: 13px;
+            color: #10b981;
+            font-weight: 600;
+            margin-left: 12px;
+        }
+
+        .category-header {
+            background: rgba(99, 102, 241, 0.08);
+            padding: 10px 20px;
+            font-weight: 600;
+            color: #9ca3af;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(138, 106, 255, 0.1);
+        }
+
+        .delete-list-btn {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+
+        .delete-list-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
     </style>
 </head>
 <body>
@@ -795,20 +880,34 @@
         </div>
     </div>
 
+    <!-- Checklist Container (hidden by default) -->
+    <div class="container" id="checklistContainer" style="display: none;">
+        <div class="header">
+            <h1>✓ Checklists</h1>
+            <p>Pack & Prepare for Orlando</p>
+            <div class="sync-status" id="checklistSyncStatus">
+                Last synced: Never
+            </div>
+        </div>
+
+        <div id="checklistError"></div>
+        <div id="checklistContent"></div>
+    </div>
+
     <!-- Bottom Navigation Bar -->
     <div class="bottom-nav">
-        <button class="nav-btn" id="refreshButton" onclick="loadFromSheets(true)">
+        <button class="nav-btn" id="refreshButton" onclick="refreshCurrentView()">
             <span>🔄</span>
             <span class="nav-btn-label">Refresh</span>
         </button>
-        <button class="nav-btn active">
+        <button class="nav-btn active" id="activitiesTab" onclick="switchToActivities()">
             <span>📅</span>
             <span class="nav-btn-label">Activities</span>
         </button>
-        <button class="nav-btn add-btn" onclick="openAddModal()">
+        <button class="nav-btn add-btn" id="addButton" onclick="openAddModalSmart()">
             <span>➕</span>
         </button>
-        <button class="nav-btn disabled" onclick="alert('Checklist feature coming soon! 📝')">
+        <button class="nav-btn" id="checklistTab" onclick="switchToChecklist()">
             <span>✓</span>
             <span class="nav-btn-label">Checklist</span>
         </button>
@@ -879,15 +978,463 @@
         </div>
     </div>
 
+    <!-- Add Checklist Item Modal -->
+    <div class="modal" id="checklistItemModal">
+        <div class="modal-content">
+            <div class="modal-header" id="checklistModalHeader">➕ Add Checklist Item</div>
+            <div class="form-group">
+                <label>List</label>
+                <select id="checklistListSelect" onchange="handleListSelection()">
+                    <option value="">Select list...</option>
+                    <option value="__new__">➕ Create New List</option>
+                </select>
+            </div>
+            <div class="form-group" id="newListGroup" style="display: none;">
+                <label>New List Name</label>
+                <input type="text" id="newListName" placeholder="e.g., Mala do Luciano">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="checklistCategorySelect">
+                    <option value="">Select category...</option>
+                    <option value="👕 Roupa">👕 Roupa</option>
+                    <option value="🧴 Higiene">🧴 Higiene</option>
+                    <option value="💊 Remédios">💊 Remédios</option>
+                    <option value="📄 Documentos">📄 Documentos</option>
+                    <option value="⚡ Eletrônicos">⚡ Eletrônicos</option>
+                    <option value="🧢 Outros">🧢 Outros</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Item Name</label>
+                <input type="text" id="checklistItemName" placeholder="e.g., 5 camisetas">
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel" onclick="closeChecklistModal()">Cancel</button>
+                <button class="save" id="saveChecklistButton" onclick="saveChecklistItem()">Add Item</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // CONFIGURATION
         // Replace these URLs with your own:
         const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRqRXPlZ9rUIdzmFViPERuMfTUo0AlCd_vy9Hj-A-RoqmhGcy0--55OJnYBnxXLMV74x0n9iDg5zqvG/pub?gid=1054467242&single=true&output=csv';
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxFvOfZUE6WEFHnYcdbw2nvgiQ1Pw0c6r2QvFzrKcgtBkJ7wTQ-lUb1r3hEsB91K0WM/exec';
+        const CHECKLIST_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRqRXPlZ9rUIdzmFViPERuMfTUo0AlCd_vy9Hj-A-RoqmhGcy0--55OJnYBnxXLMV74x0n9iDg5zqvG/pub?gid=388682998&single=true&output=csv';
 
         let tripData = { days: [] };
+        let checklistData = { lists: [] };
+        let currentView = 'activities';  // 'activities' or 'checklist'
         let lastUpdate = null;
         let lastAddedTime = null;
+
+        // VIEW SWITCHING FUNCTIONS
+        function switchToActivities() {
+            currentView = 'activities';
+            document.getElementById('container').style.display = 'block';
+            document.getElementById('checklistContainer').style.display = 'none';
+            document.getElementById('activitiesTab').classList.add('active');
+            document.getElementById('checklistTab').classList.remove('active');
+        }
+
+        function switchToChecklist() {
+            currentView = 'checklist';
+            document.getElementById('container').style.display = 'none';
+            document.getElementById('checklistContainer').style.display = 'block';
+            document.getElementById('activitiesTab').classList.remove('active');
+            document.getElementById('checklistTab').classList.add('active');
+
+            // Load checklist data if not loaded
+            if (checklistData.lists.length === 0) {
+                loadChecklistData();
+            }
+        }
+
+        function refreshCurrentView() {
+            if (currentView === 'activities') {
+                loadFromSheets(true);
+            } else {
+                loadChecklistData(true);
+            }
+        }
+
+        // CHECKLIST DATA FUNCTIONS
+        function parseChecklistCSV(csv) {
+            const lines = csv.split('\n').filter(line => line.trim());
+            const data = { lists: {} };
+
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const fields = [];
+                let current = '';
+                let inQuotes = false;
+
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        fields.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                fields.push(current.trim());
+
+                const [listName, category, itemName, isDone] = fields;
+
+                if (!listName || !itemName) continue;
+
+                if (!data.lists[listName]) {
+                    data.lists[listName] = {
+                        name: listName,
+                        categories: {}
+                    };
+                }
+
+                if (!data.lists[listName].categories[category]) {
+                    data.lists[listName].categories[category] = [];
+                }
+
+                data.lists[listName].categories[category].push({
+                    name: itemName,
+                    isDone: isDone === 'true'
+                });
+            }
+
+            return { lists: Object.values(data.lists) };
+        }
+
+        async function loadChecklistData(forceRefresh = false) {
+            const errorDiv = document.getElementById('checklistError');
+            const statusDiv = document.getElementById('checklistSyncStatus');
+
+            errorDiv.innerHTML = '';
+
+            try {
+                const response = await fetch(CHECKLIST_CSV_URL + '?t=' + Date.now());
+                const csv = await response.text();
+
+                checklistData = parseChecklistCSV(csv);
+
+                // Load from localStorage for isDone states
+                const cached = localStorage.getItem('checklistCache');
+                if (cached) {
+                    const cachedData = JSON.parse(cached);
+                    // Merge isDone states from cache
+                    checklistData.lists.forEach(list => {
+                        const cachedList = cachedData.lists.find(l => l.name === list.name);
+                        if (cachedList) {
+                            Object.keys(list.categories).forEach(category => {
+                                const cachedCategory = cachedList.categories[category];
+                                if (cachedCategory) {
+                                    list.categories[category].forEach((item, idx) => {
+                                        if (cachedCategory[idx]) {
+                                            item.isDone = cachedCategory[idx].isDone;
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+
+                renderChecklists();
+                statusDiv.textContent = `Last synced: ${new Date().toLocaleTimeString()}`;
+
+            } catch (error) {
+                console.error('Error loading checklist:', error);
+                errorDiv.innerHTML = '<div class="error-message">❌ Failed to load checklists. Check CSV URL.</div>';
+            }
+        }
+
+        function renderChecklists() {
+            const content = document.getElementById('checklistContent');
+            content.innerHTML = '';
+
+            checklistData.lists.forEach((list, listIndex) => {
+                const totalItems = Object.values(list.categories).flat().length;
+                const doneItems = Object.values(list.categories).flat().filter(item => item.isDone).length;
+                const progress = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
+
+                const listSection = document.createElement('div');
+                listSection.className = 'day-section';
+                listSection.dataset.list = listIndex;
+
+                let categoriesHTML = '';
+                Object.keys(list.categories).forEach(category => {
+                    categoriesHTML += `<div class="category-header">${category}</div>`;
+
+                    list.categories[category].forEach((item, itemIndex) => {
+                        const itemId = `${listIndex}-${category}-${itemIndex}`;
+                        categoriesHTML += `
+                            <div class="checklist-item ${item.isDone ? 'checked' : ''}" data-item-id="${itemId}">
+                                <div class="checklist-checkbox ${item.isDone ? 'checked' : ''}"
+                                     onclick="toggleChecklistItem(${listIndex}, '${category}', ${itemIndex})"></div>
+                                <div class="checklist-item-text">${item.name}</div>
+                                <div class="activity-menu">
+                                    <button class="menu-btn" onclick="toggleMenu('menu-${itemId}', event)">⋮</button>
+                                    <div class="menu-dropdown" id="menu-${itemId}">
+                                        <div class="menu-item delete" onclick="deleteChecklistItem(${listIndex}, '${category}', ${itemIndex})">
+                                            🗑️ Delete
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+
+                listSection.innerHTML = `
+                    <div class="day-header" onclick="toggleList(${listIndex})">
+                        <div style="display: flex; align-items: center; flex: 1;">
+                            <div class="day-number">${list.name.split(' ')[0]}</div>
+                            <span style="flex: 1; margin-left: 15px;">${list.name}</span>
+                            <span class="list-progress">${progress}% ✓</span>
+                            <button class="delete-list-btn" onclick="deleteList(${listIndex}, event)">🗑️ Delete List</button>
+                            <span class="arrow">▼</span>
+                        </div>
+                    </div>
+                    <div class="activities">
+                        ${categoriesHTML}
+                    </div>
+                `;
+
+                content.appendChild(listSection);
+            });
+        }
+
+        function toggleList(listIndex) {
+            const listSection = document.querySelector(`.day-section[data-list="${listIndex}"]`);
+            listSection.classList.toggle('collapsed');
+        }
+
+        async function toggleChecklistItem(listIndex, category, itemIndex) {
+            const list = checklistData.lists[listIndex];
+            const item = list.categories[category][itemIndex];
+
+            item.isDone = !item.isDone;
+
+            // Save to localStorage
+            localStorage.setItem('checklistCache', JSON.stringify(checklistData));
+
+            // Sync to Google Sheets
+            try {
+                const payload = {
+                    type: 'checklist',
+                    action: 'update',
+                    listName: list.name,
+                    category: category,
+                    itemName: item.name,
+                    isDone: item.isDone
+                };
+
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('✅ Checklist item synced to Google Sheets');
+            } catch (error) {
+                console.error('Failed to sync checklist item:', error);
+            }
+
+            renderChecklists();
+        }
+
+        async function deleteChecklistItem(listIndex, category, itemIndex) {
+            if (!confirm('Delete this item?')) return;
+
+            const list = checklistData.lists[listIndex];
+            const item = list.categories[category][itemIndex];
+
+            // Sync deletion to Google Sheets first
+            try {
+                const payload = {
+                    type: 'checklist',
+                    action: 'delete',
+                    listName: list.name,
+                    category: category,
+                    itemName: item.name
+                };
+
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('✅ Checklist item deleted from Google Sheets');
+            } catch (error) {
+                console.error('Failed to delete checklist item:', error);
+            }
+
+            // Remove from local data
+            checklistData.lists[listIndex].categories[category].splice(itemIndex, 1);
+
+            // Remove category if empty
+            if (checklistData.lists[listIndex].categories[category].length === 0) {
+                delete checklistData.lists[listIndex].categories[category];
+            }
+
+            localStorage.setItem('checklistCache', JSON.stringify(checklistData));
+            renderChecklists();
+        }
+
+        async function deleteList(listIndex, event) {
+            event.stopPropagation();
+
+            const listName = checklistData.lists[listIndex].name;
+            if (!confirm(`Delete entire list "${listName}"? This cannot be undone.`)) return;
+
+            // Sync deletion to Google Sheets first
+            try {
+                const payload = {
+                    type: 'checklist',
+                    action: 'deleteList',
+                    listName: listName
+                };
+
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('✅ Checklist list deleted from Google Sheets');
+            } catch (error) {
+                console.error('Failed to delete checklist list:', error);
+            }
+
+            checklistData.lists.splice(listIndex, 1);
+            localStorage.setItem('checklistCache', JSON.stringify(checklistData));
+            renderChecklists();
+        }
+
+        // CHECKLIST MODAL FUNCTIONS
+        function openChecklistModal() {
+            // Populate list dropdown
+            const listSelect = document.getElementById('checklistListSelect');
+            listSelect.innerHTML = '<option value="">Select list...</option><option value="__new__">➕ Create New List</option>';
+
+            checklistData.lists.forEach(list => {
+                const option = document.createElement('option');
+                option.value = list.name;
+                option.textContent = list.name;
+                listSelect.appendChild(option);
+            });
+
+            // Reset form
+            listSelect.value = '';
+            document.getElementById('newListGroup').style.display = 'none';
+            document.getElementById('newListName').value = '';
+            document.getElementById('checklistCategorySelect').value = '';
+            document.getElementById('checklistItemName').value = '';
+            document.getElementById('checklistModalHeader').textContent = '➕ Add Checklist Item';
+
+            document.getElementById('checklistItemModal').classList.add('active');
+        }
+
+        function closeChecklistModal() {
+            document.getElementById('checklistItemModal').classList.remove('active');
+        }
+
+        function handleListSelection() {
+            const listSelect = document.getElementById('checklistListSelect');
+            const newListGroup = document.getElementById('newListGroup');
+
+            if (listSelect.value === '__new__') {
+                newListGroup.style.display = 'block';
+            } else {
+                newListGroup.style.display = 'none';
+            }
+        }
+
+        async function saveChecklistItem() {
+            const listSelect = document.getElementById('checklistListSelect').value;
+            const newListName = document.getElementById('newListName').value.trim();
+            const category = document.getElementById('checklistCategorySelect').value;
+            const itemName = document.getElementById('checklistItemName').value.trim();
+
+            if (!itemName || !category) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            let listName = listSelect;
+            if (listSelect === '__new__') {
+                if (!newListName) {
+                    alert('Please enter a name for the new list');
+                    return;
+                }
+                listName = newListName;
+
+                // Create new list
+                checklistData.lists.push({
+                    name: listName,
+                    categories: {}
+                });
+            }
+
+            // Find the list
+            const list = checklistData.lists.find(l => l.name === listName);
+            if (!list) {
+                alert('List not found');
+                return;
+            }
+
+            // Add item to category
+            if (!list.categories[category]) {
+                list.categories[category] = [];
+            }
+
+            list.categories[category].push({
+                name: itemName,
+                isDone: false
+            });
+
+            // Save to localStorage
+            localStorage.setItem('checklistCache', JSON.stringify(checklistData));
+
+            // Sync to Google Sheets
+            try {
+                const payload = {
+                    type: 'checklist',
+                    action: 'add',
+                    listName: listName,
+                    category: category,
+                    itemName: itemName,
+                    isDone: 'false'
+                };
+
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('✅ Checklist item synced to Google Sheets');
+            } catch (error) {
+                console.error('Failed to sync checklist item:', error);
+            }
+
+            renderChecklists();
+            closeChecklistModal();
+
+            // Show success message
+            const errorDiv = document.getElementById('checklistError');
+            errorDiv.innerHTML = '<div class="success-message">✅ Item added & synced!</div>';
+            setTimeout(() => errorDiv.innerHTML = '', 2000);
+        }
 
         function openGoogleMaps(location) {
             const encodedLocation = encodeURIComponent(location);
@@ -1489,6 +2036,14 @@
             updateTotal();
             drawPieChart();
             updateNextActivity();
+        }
+
+        function openAddModalSmart() {
+            if (currentView === 'checklist') {
+                openChecklistModal();
+            } else {
+                openAddModal();
+            }
         }
 
         function openAddModal() {
