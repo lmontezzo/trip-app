@@ -766,10 +766,47 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            cursor: grab;
+            user-select: none;
+            position: relative;
         }
 
         .checklist-item:hover {
             background: rgba(99, 102, 241, 0.05);
+        }
+
+        .checklist-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+            background: rgba(139, 92, 246, 0.2);
+            border: 2px dashed rgba(139, 92, 246, 0.5);
+        }
+
+        .checklist-item.drag-over {
+            border-top: 3px solid #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .drag-handle {
+            color: #6b7280;
+            font-size: 18px;
+            cursor: grab;
+            padding: 4px;
+            margin-left: -8px;
+            transition: color 0.2s;
+        }
+
+        .drag-handle:hover {
+            color: #a78bfa;
+        }
+
+        .checklist-item.dragging .drag-handle {
+            cursor: grabbing;
+            color: #8b5cf6;
+        }
+
+        .checklist-item:active {
+            cursor: grabbing;
         }
 
         .checklist-checkbox {
@@ -1151,6 +1188,9 @@
                 renderChecklists();
                 statusDiv.textContent = `Last synced: ${new Date().toLocaleTimeString()}`;
 
+                console.log('✅ Checklists loaded!');
+                console.log('💡 TIP: Hold and drag the ☰ handle to reorder items within a category');
+
             } catch (error) {
                 console.error('Error loading checklist:', error);
                 errorDiv.innerHTML = '<div class="error-message">❌ Failed to load checklists. Check CSV URL.</div>';
@@ -1180,7 +1220,21 @@
                         const itemId = `${listIndex}-${category}-${itemIndex}`;
                         const escapedCategory = category.replace(/'/g, "\\'");
                         categoriesHTML += `
-                            <div class="checklist-item ${item.isDone ? 'checked' : ''}" data-item-id="${itemId}">
+                            <div class="checklist-item ${item.isDone ? 'checked' : ''}"
+                                 data-item-id="${itemId}"
+                                 data-list-index="${listIndex}"
+                                 data-category="${category}"
+                                 data-item-index="${itemIndex}"
+                                 draggable="true"
+                                 ondragstart="handleDragStart(event)"
+                                 ondragend="handleDragEnd(event)"
+                                 ondragover="handleDragOver(event)"
+                                 ondrop="handleDrop(event)"
+                                 ondragleave="handleDragLeave(event)"
+                                 ontouchstart="handleTouchStart(event)"
+                                 ontouchmove="handleTouchMove(event)"
+                                 ontouchend="handleTouchEnd(event)">
+                                <div class="drag-handle">☰</div>
                                 <div class="checklist-checkbox ${item.isDone ? 'checked' : ''}"
                                      onclick="toggleChecklistItem(${listIndex}, '${escapedCategory}', ${itemIndex})"></div>
                                 <div class="checklist-item-text">${item.name}</div>
@@ -1233,6 +1287,225 @@
         function toggleList(listIndex) {
             const listSection = document.querySelector(`.day-section[data-list="${listIndex}"]`);
             listSection.classList.toggle('collapsed');
+        }
+
+        // DRAG AND DROP FUNCTIONS
+        let draggedElement = null;
+        let draggedData = null;
+        let touchStartY = 0;
+        let isDragging = false;
+
+        function handleDragStart(event) {
+            draggedElement = event.target;
+            draggedData = {
+                listIndex: parseInt(draggedElement.dataset.listIndex),
+                category: draggedElement.dataset.category,
+                itemIndex: parseInt(draggedElement.dataset.itemIndex)
+            };
+
+            draggedElement.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(event) {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+            }
+
+            // Remove drag-over class from all items
+            document.querySelectorAll('.checklist-item.drag-over').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+
+            draggedElement = null;
+            draggedData = null;
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+
+            const targetElement = event.target.closest('.checklist-item');
+            if (!targetElement || targetElement === draggedElement) return;
+
+            // Check if same category
+            const targetCategory = targetElement.dataset.category;
+            if (draggedData && targetCategory === draggedData.category) {
+                targetElement.classList.add('drag-over');
+                event.dataTransfer.dropEffect = 'move';
+            }
+        }
+
+        function handleDragLeave(event) {
+            const targetElement = event.target.closest('.checklist-item');
+            if (targetElement) {
+                targetElement.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const targetElement = event.target.closest('.checklist-item');
+            if (!targetElement || !draggedData || targetElement === draggedElement) return;
+
+            const targetListIndex = parseInt(targetElement.dataset.listIndex);
+            const targetCategory = targetElement.dataset.category;
+            const targetItemIndex = parseInt(targetElement.dataset.itemIndex);
+
+            // Only allow reordering within same category
+            if (draggedData.listIndex !== targetListIndex || draggedData.category !== targetCategory) {
+                return;
+            }
+
+            // Reorder items
+            const list = checklistData.lists[draggedData.listIndex];
+            const items = list.categories[draggedData.category];
+            const [movedItem] = items.splice(draggedData.itemIndex, 1);
+
+            // Calculate new index based on whether we're moving up or down
+            let newIndex = targetItemIndex;
+            if (draggedData.itemIndex < targetItemIndex) {
+                newIndex = targetItemIndex;
+            }
+
+            items.splice(newIndex, 0, movedItem);
+
+            // Save and re-render
+            localStorage.setItem('checklistCache', JSON.stringify(checklistData));
+            renderChecklists();
+
+            console.log('✅ Item reordered:', movedItem.name);
+        }
+
+        // TOUCH SUPPORT FOR MOBILE
+        let touchDragElement = null;
+        let touchClone = null;
+
+        function handleTouchStart(event) {
+            // Only activate drag on the drag handle itself
+            const dragHandle = event.target.closest('.drag-handle');
+            if (!dragHandle) {
+                touchDragElement = null;
+                return;
+            }
+
+            const touch = event.touches[0];
+            touchStartY = touch.clientY;
+
+            const element = event.target.closest('.checklist-item');
+            if (!element) return;
+
+            touchDragElement = element;
+
+            // Start drag immediately when touching the handle
+            setTimeout(() => {
+                if (touchDragElement === element) {
+                    isDragging = true;
+                    element.classList.add('dragging');
+
+                    // Haptic feedback if available
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50);
+                    }
+
+                    // Create visual clone for feedback
+                    touchClone = element.cloneNode(true);
+                    touchClone.style.position = 'fixed';
+                    touchClone.style.width = element.offsetWidth + 'px';
+                    touchClone.style.opacity = '0.8';
+                    touchClone.style.zIndex = '3000';
+                    touchClone.style.pointerEvents = 'none';
+                    document.body.appendChild(touchClone);
+                }
+            }, 200);  // Reduced to 200ms for faster response
+        }
+
+        function handleTouchMove(event) {
+            if (!isDragging || !touchClone) return;
+
+            event.preventDefault();
+            const touch = event.touches[0];
+
+            // Move clone with finger
+            touchClone.style.left = '50%';
+            touchClone.style.transform = 'translateX(-50%)';
+            touchClone.style.top = (touch.clientY - 30) + 'px';
+
+            // Find element under touch
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetElement = elementBelow?.closest('.checklist-item');
+
+            // Remove all drag-over classes
+            document.querySelectorAll('.checklist-item.drag-over').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+
+            // Add drag-over to target if valid
+            if (targetElement && targetElement !== touchDragElement) {
+                const targetCategory = targetElement.dataset.category;
+                const dragCategory = touchDragElement.dataset.category;
+                if (targetCategory === dragCategory) {
+                    targetElement.classList.add('drag-over');
+                }
+            }
+        }
+
+        function handleTouchEnd(event) {
+            if (!isDragging) {
+                touchDragElement = null;
+                return;
+            }
+
+            const touch = event.changedTouches[0];
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetElement = elementBelow?.closest('.checklist-item');
+
+            if (targetElement && targetElement !== touchDragElement) {
+                const dragListIndex = parseInt(touchDragElement.dataset.listIndex);
+                const dragCategory = touchDragElement.dataset.category;
+                const dragItemIndex = parseInt(touchDragElement.dataset.itemIndex);
+
+                const targetListIndex = parseInt(targetElement.dataset.listIndex);
+                const targetCategory = targetElement.dataset.category;
+                const targetItemIndex = parseInt(targetElement.dataset.itemIndex);
+
+                // Only reorder within same category
+                if (dragListIndex === targetListIndex && dragCategory === targetCategory) {
+                    const list = checklistData.lists[dragListIndex];
+                    const items = list.categories[dragCategory];
+                    const [movedItem] = items.splice(dragItemIndex, 1);
+
+                    let newIndex = targetItemIndex;
+                    if (dragItemIndex < targetItemIndex) {
+                        newIndex = targetItemIndex;
+                    }
+
+                    items.splice(newIndex, 0, movedItem);
+
+                    localStorage.setItem('checklistCache', JSON.stringify(checklistData));
+                    renderChecklists();
+
+                    console.log('✅ Item reordered (touch):', movedItem.name);
+                }
+            }
+
+            // Cleanup
+            if (touchClone) {
+                touchClone.remove();
+                touchClone = null;
+            }
+
+            if (touchDragElement) {
+                touchDragElement.classList.remove('dragging');
+            }
+
+            document.querySelectorAll('.checklist-item.drag-over').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+
+            isDragging = false;
+            touchDragElement = null;
         }
 
         function editListName(listIndex, event) {
