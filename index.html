@@ -848,7 +848,7 @@
         </div>
     </div>
 
-    <div class="container">
+    <div class="container" id="container">
         <div class="header">
             <h1>🏰 Orlando Trip</h1>
             <p>Panama ✈️ Orlando Adventure</p>
@@ -2014,7 +2014,8 @@
 
                 // Get weekday
                 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                const weekday = weekdays[day.date.getDay()];
+                const dateObj = day.date instanceof Date ? day.date : new Date(day.date);
+                const weekday = weekdays[dateObj.getDay()];
 
                 daySection.innerHTML = `
                     <div class="day-header" onclick="toggleDay(${dayIndex})">
