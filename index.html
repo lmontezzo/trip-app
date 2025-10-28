@@ -1171,15 +1171,19 @@
 
                     list.categories[category].forEach((item, itemIndex) => {
                         const itemId = `${listIndex}-${category}-${itemIndex}`;
+                        const escapedCategory = category.replace(/'/g, "\\'");
                         categoriesHTML += `
                             <div class="checklist-item ${item.isDone ? 'checked' : ''}" data-item-id="${itemId}">
                                 <div class="checklist-checkbox ${item.isDone ? 'checked' : ''}"
-                                     onclick="toggleChecklistItem(${listIndex}, '${category}', ${itemIndex})"></div>
+                                     onclick="toggleChecklistItem(${listIndex}, '${escapedCategory}', ${itemIndex})"></div>
                                 <div class="checklist-item-text">${item.name}</div>
                                 <div class="activity-menu">
                                     <button class="menu-btn" onclick="toggleMenu('menu-${itemId}', event)">⋮</button>
                                     <div class="menu-dropdown" id="menu-${itemId}">
-                                        <div class="menu-item delete" onclick="deleteChecklistItem(${listIndex}, '${category}', ${itemIndex})">
+                                        <div class="menu-item" onclick="editChecklistItem(${listIndex}, '${escapedCategory}', ${itemIndex}, event)">
+                                            ✏️ Edit
+                                        </div>
+                                        <div class="menu-item delete" onclick="deleteChecklistItem(${listIndex}, '${escapedCategory}', ${itemIndex})">
                                             🗑️ Delete
                                         </div>
                                     </div>
@@ -1247,6 +1251,65 @@
 
             console.log(`✏️ List renamed from "${oldName}" to "${newName}"`);
             console.log('Note: This change is local only. To sync to Sheets, manually update the ListName column.');
+        }
+
+        function editChecklistItem(listIndex, category, itemIndex, event) {
+            event.stopPropagation();
+
+            // Close the menu
+            const itemId = `${listIndex}-${category}-${itemIndex}`;
+            const menu = document.getElementById(`menu-${itemId}`);
+            if (menu) menu.classList.remove('active');
+
+            const list = checklistData.lists[listIndex];
+            const item = list.categories[category][itemIndex];
+
+            const newName = prompt('Edit item:', item.name);
+
+            if (!newName || newName.trim() === '' || newName === item.name) return;
+
+            const oldName = item.name;
+            item.name = newName.trim();
+
+            // Save to localStorage
+            localStorage.setItem('checklistCache', JSON.stringify(checklistData));
+
+            // Update UI immediately
+            renderChecklists();
+
+            // Sync to Google Sheets in background
+            syncChecklistItemEdit(list.name, category, oldName, newName.trim());
+
+            // Show success message
+            const errorDiv = document.getElementById('checklistError');
+            errorDiv.innerHTML = `<div class="success-message">✅ Item updated!</div>`;
+            setTimeout(() => errorDiv.innerHTML = '', 2000);
+        }
+
+        async function syncChecklistItemEdit(listName, category, oldItemName, newItemName) {
+            try {
+                const payload = {
+                    type: 'checklist',
+                    action: 'editItem',
+                    listName: listName,
+                    category: category,
+                    oldItemName: oldItemName,
+                    newItemName: newItemName
+                };
+
+                console.log('📤 Syncing item edit to Sheets:', payload);
+
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('✅ Item name synced to Google Sheets');
+            } catch (error) {
+                console.error('❌ Failed to sync item edit:', error);
+            }
         }
 
         function toggleChecklistItem(listIndex, category, itemIndex) {

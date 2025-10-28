@@ -83,6 +83,8 @@ function handleChecklistAction(data) {
     return addChecklistItem(sheet, data);
   } else if (data.action === 'update') {
     return updateChecklistItem(sheet, data);
+  } else if (data.action === 'editItem') {
+    return editChecklistItem(sheet, data);
   } else if (data.action === 'delete') {
     return deleteChecklistItem(sheet, data);
   } else if (data.action === 'deleteList') {
@@ -174,6 +176,48 @@ function updateChecklistItem(sheet, data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// Edit checklist item name
+function editChecklistItem(sheet, data) {
+  var listName = data.listName;
+  var category = data.category;
+  var oldItemName = data.oldItemName;
+  var newItemName = data.newItemName;
+
+  Logger.log('🔍 EDIT REQUEST - List: "' + listName + '", Category: "' + category + '", Old: "' + oldItemName + '", New: "' + newItemName + '"');
+
+  // Find the row
+  var dataRange = sheet.getDataRange();
+  var values = dataRange.getValues();
+
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][0] === listName &&
+        values[i][1] === category &&
+        values[i][2] === oldItemName) {
+
+      // Update item name (column C)
+      sheet.getRange(i + 1, 3).setValue(newItemName);
+
+      Logger.log('✅ UPDATED item name at row ' + (i + 1) + ': "' + oldItemName + '" -> "' + newItemName + '"');
+
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: true,
+          message: 'Item name updated'
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  Logger.log('❌ ITEM NOT FOUND for edit');
+
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      success: false,
+      error: 'Item not found: ' + oldItemName
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 // Delete checklist item
 function deleteChecklistItem(sheet, data) {
   var listName = data.listName;
@@ -249,7 +293,7 @@ function doGet(e) {
         },
         checklists: {
           columns: ['ListName', 'Category', 'ItemName', 'IsDone'],
-          actions: ['add', 'update', 'delete', 'deleteList']
+          actions: ['add', 'update', 'editItem', 'delete', 'deleteList']
         }
       }
     }))
