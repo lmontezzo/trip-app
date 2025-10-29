@@ -2776,16 +2776,26 @@
                         time: timeInput
                     };
 
-                    console.log('📤 Updating activity in Sheets:', payload);
+                    console.log('═══════════════════════════════════════');
+                    console.log('📤 UPDATING ACTIVITY IN SHEETS');
+                    console.log('═══════════════════════════════════════');
+                    console.log('Original Date:', originalDateStr);
+                    console.log('Original Name:', originalName);
+                    console.log('New Date:', dateInput);
+                    console.log('New Name:', nameInput);
+                    console.log('New Cost:', costInput);
+                    console.log('Full Payload:', JSON.stringify(payload, null, 2));
+                    console.log('═══════════════════════════════════════');
 
-                    await fetch(APPS_SCRIPT_URL, {
+                    const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
 
-                    console.log('✅ Activity update sent to Google Sheets');
+                    console.log('✅ Activity update request sent to Google Sheets');
+                    console.log('⏳ Check Apps Script Executions to see if it was found and updated');
                 } catch (error) {
                     console.error('❌ Failed to update activity:', error);
                 }
