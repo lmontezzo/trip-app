@@ -26,10 +26,21 @@ function doPost(e) {
   }
 }
 
-// Handle Activity (existing functionality)
+// Handle Activity actions (add, update, delete)
 function handleActivityAction(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet1');
 
+  if (data.action === 'update') {
+    return updateActivity(sheet, data);
+  } else if (data.action === 'delete') {
+    return deleteActivity(sheet, data);
+  } else {
+    return addActivity(sheet, data);
+  }
+}
+
+// Add new activity
+function addActivity(sheet, data) {
   // Build row manually, field by field
   var col_A = data.dateStr ? String(data.dateStr) : '';
   var col_B = data.dayNumber ? String(data.dayNumber) : '';
@@ -45,9 +56,6 @@ function handleActivityAction(data) {
   Logger.log('COL A (Date): "' + col_A + '"');
   Logger.log('COL B (DayNumber): "' + col_B + '"');
   Logger.log('COL H (Category): "' + col_H + '"');
-
-  // Create array (10 columns)
-  var rowData = [col_A, col_B, col_C, col_D, col_E, col_F, col_G, col_H, col_I, col_J];
 
   // Get the next empty row
   var lastRow = sheet.getLastRow();
@@ -71,6 +79,91 @@ function handleActivityAction(data) {
     .createTextOutput(JSON.stringify({
       success: true,
       message: 'Activity added successfully'
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Update existing activity
+function updateActivity(sheet, data) {
+  var dateStr = data.dateStr;
+  var oldName = data.oldName;
+  var newData = data;
+
+  Logger.log('🔍 UPDATE ACTIVITY - Date: "' + dateStr + '", OldName: "' + oldName + '"');
+
+  // Find the row
+  var dataRange = sheet.getDataRange();
+  var values = dataRange.getValues();
+
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][0] === dateStr && values[i][3] === oldName) {
+
+      // Update all fields
+      sheet.getRange(i + 1, 1).setValue(newData.dateStr || '');
+      sheet.getRange(i + 1, 2).setValue(newData.dayNumber || '');
+      sheet.getRange(i + 1, 3).setValue(newData.dayTitle || '');
+      sheet.getRange(i + 1, 4).setValue(newData.name || '');
+      sheet.getRange(i + 1, 5).setValue(newData.details || '');
+      sheet.getRange(i + 1, 6).setValue(newData.cost || '');
+      sheet.getRange(i + 1, 7).setValue(newData.link || '');
+      sheet.getRange(i + 1, 8).setValue(newData.category || 'Others');
+      sheet.getRange(i + 1, 9).setValue(newData.location || '');
+      sheet.getRange(i + 1, 10).setValue(newData.time || '');
+
+      Logger.log('✅ UPDATED activity at row ' + (i + 1));
+
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: true,
+          message: 'Activity updated'
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  Logger.log('❌ Activity not found for update');
+
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      success: false,
+      error: 'Activity not found: ' + oldName
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Delete activity
+function deleteActivity(sheet, data) {
+  var dateStr = data.dateStr;
+  var activityName = data.name;
+
+  Logger.log('🔍 DELETE ACTIVITY - Date: "' + dateStr + '", Name: "' + activityName + '"');
+
+  // Find the row
+  var dataRange = sheet.getDataRange();
+  var values = dataRange.getValues();
+
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][0] === dateStr && values[i][3] === activityName) {
+
+      sheet.deleteRow(i + 1);
+
+      Logger.log('✅ DELETED activity at row ' + (i + 1));
+
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: true,
+          message: 'Activity deleted'
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  Logger.log('❌ Activity not found for delete');
+
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      success: false,
+      error: 'Activity not found: ' + activityName
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }

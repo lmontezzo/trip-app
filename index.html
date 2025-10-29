@@ -2360,13 +2360,33 @@
             closeAllMenus();
         }
 
-        function deleteActivity(dayIndex, activityIndex) {
+        async function deleteActivity(dayIndex, activityIndex) {
             const day = tripData.days[dayIndex];
             const activity = day.activities[activityIndex];
 
             if (confirm(`Delete "${activity.name}"?`)) {
                 // Close menu first
                 closeAllMenus();
+
+                // Sync deletion to Google Sheets
+                try {
+                    const payload = {
+                        action: 'delete',
+                        dateStr: day.dateStr,
+                        name: activity.name
+                    };
+
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    console.log('✅ Activity deleted from Google Sheets');
+                } catch (error) {
+                    console.error('Failed to delete activity:', error);
+                }
 
                 // Remove from local data
                 tripData.days[dayIndex].activities.splice(activityIndex, 1);
@@ -2384,7 +2404,7 @@
 
                 // Show success message
                 const errorDiv = document.getElementById('errorMessage');
-                errorDiv.innerHTML = '<div class="success-message">✅ Deleted! (Local only - refresh to sync)</div>';
+                errorDiv.innerHTML = '<div class="success-message">✅ Deleted & synced!</div>';
                 setTimeout(() => {
                     errorDiv.innerHTML = '';
                 }, 3000);
@@ -2731,6 +2751,37 @@
             // Check if we're editing
             if (window.editingActivity) {
                 const { dayIndex, activityIndex } = window.editingActivity;
+                const day = tripData.days[dayIndex];
+                const oldActivity = day.activities[activityIndex];
+
+                // Sync update to Google Sheets
+                try {
+                    const payload = {
+                        action: 'update',
+                        dateStr: day.dateStr,
+                        oldName: oldActivity.name,
+                        dayNumber: calculatedDayNumber,
+                        dayTitle: finalDayTitle,
+                        name: nameInput,
+                        details: detailsInput,
+                        cost: costInput,
+                        link: linkInput,
+                        category: categoryInput || 'Others',
+                        location: locationInput,
+                        time: timeInput
+                    };
+
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    console.log('✅ Activity updated in Google Sheets');
+                } catch (error) {
+                    console.error('Failed to update activity:', error);
+                }
 
                 // Update local data
                 tripData.days[dayIndex].activities[activityIndex] = {
@@ -2753,7 +2804,7 @@
                 render();
 
                 // Show success message
-                errorDiv.innerHTML = '<div class="success-message">✅ Updated! (Local only - refresh to sync)</div>';
+                errorDiv.innerHTML = '<div class="success-message">✅ Updated & synced to Sheets!</div>';
                 setTimeout(() => {
                     errorDiv.innerHTML = '';
                 }, 3000);
