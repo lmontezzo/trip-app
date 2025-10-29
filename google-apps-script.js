@@ -85,43 +85,56 @@ function addActivity(sheet, data) {
 
 // Update existing activity
 function updateActivity(sheet, data) {
-  var dateStr = data.dateStr;
-  var oldName = data.oldName;
-  var newData = data;
+  var originalDateStr = data.originalDateStr || data.dateStr;  // Original date to find the row
+  var oldName = data.oldName;                                   // Original name to find the row
+  var newDateStr = data.dateStr;                               // New date (might be same or different)
 
-  Logger.log('🔍 UPDATE ACTIVITY - Date: "' + dateStr + '", OldName: "' + oldName + '"');
+  Logger.log('🔍 UPDATE ACTIVITY - Finding: Date="' + originalDateStr + '", Name="' + oldName + '"');
+  Logger.log('🔍 New values - Date="' + newDateStr + '", Name="' + data.name + '", Cost="' + data.cost + '"');
 
   // Find the row
   var dataRange = sheet.getDataRange();
   var values = dataRange.getValues();
 
+  Logger.log('📊 Searching ' + (values.length - 1) + ' rows...');
+
   for (var i = 1; i < values.length; i++) {
-    if (values[i][0] === dateStr && values[i][3] === oldName) {
+    var rowDate = values[i][0];
+    var rowName = values[i][3];
 
-      // Update all fields
-      sheet.getRange(i + 1, 1).setValue(newData.dateStr || '');
-      sheet.getRange(i + 1, 2).setValue(newData.dayNumber || '');
-      sheet.getRange(i + 1, 3).setValue(newData.dayTitle || '');
-      sheet.getRange(i + 1, 4).setValue(newData.name || '');
-      sheet.getRange(i + 1, 5).setValue(newData.details || '');
-      sheet.getRange(i + 1, 6).setValue(newData.cost || '');
-      sheet.getRange(i + 1, 7).setValue(newData.link || '');
-      sheet.getRange(i + 1, 8).setValue(newData.category || 'Others');
-      sheet.getRange(i + 1, 9).setValue(newData.location || '');
-      sheet.getRange(i + 1, 10).setValue(newData.time || '');
+    if (rowDate === originalDateStr && rowName === oldName) {
 
-      Logger.log('✅ UPDATED activity at row ' + (i + 1));
+      Logger.log('✅ FOUND at row ' + (i + 1) + '! Updating...');
+
+      // Update all fields (use the NEW dateStr in case date was changed)
+      sheet.getRange(i + 1, 1).setValue(newDateStr || '');
+      sheet.getRange(i + 1, 2).setValue(data.dayNumber || '');
+      sheet.getRange(i + 1, 3).setValue(data.dayTitle || '');
+      sheet.getRange(i + 1, 4).setValue(data.name || '');
+      sheet.getRange(i + 1, 5).setValue(data.details || '');
+      sheet.getRange(i + 1, 6).setValue(data.cost || '');
+      sheet.getRange(i + 1, 7).setValue(data.link || '');
+      sheet.getRange(i + 1, 8).setValue(data.category || 'Others');
+      sheet.getRange(i + 1, 9).setValue(data.location || '');
+      sheet.getRange(i + 1, 10).setValue(data.time || '');
+
+      Logger.log('✅ UPDATED all 10 columns at row ' + (i + 1));
 
       return ContentService
         .createTextOutput(JSON.stringify({
           success: true,
-          message: 'Activity updated'
+          message: 'Activity updated',
+          row: i + 1
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
   }
 
-  Logger.log('❌ Activity not found for update');
+  Logger.log('❌ Activity NOT FOUND - Date: "' + originalDateStr + '", Name: "' + oldName + '"');
+  Logger.log('💡 First few rows in sheet:');
+  for (var j = 1; j < Math.min(5, values.length); j++) {
+    Logger.log('  Row ' + (j + 1) + ': Date="' + values[j][0] + '", Name="' + values[j][3] + '"');
+  }
 
   return ContentService
     .createTextOutput(JSON.stringify({

@@ -2346,8 +2346,13 @@
             document.getElementById('addLink').value = activity.link || '';
             document.getElementById('addLocation').value = activity.location || '';
 
-            // Store the edit info for later
-            window.editingActivity = { dayIndex, activityIndex };
+            // Store the edit info for later - including original name for finding in Sheets
+            window.editingActivity = {
+                dayIndex,
+                activityIndex,
+                originalName: activity.name,
+                originalDateStr: day.dateStr
+            };
 
             // Change modal title and button text
             document.querySelector('.modal-header').innerHTML = '✏️ Edit Expense';
@@ -2750,16 +2755,16 @@
 
             // Check if we're editing
             if (window.editingActivity) {
-                const { dayIndex, activityIndex } = window.editingActivity;
+                const { dayIndex, activityIndex, originalName, originalDateStr } = window.editingActivity;
                 const day = tripData.days[dayIndex];
-                const oldActivity = day.activities[activityIndex];
 
                 // Sync update to Google Sheets
                 try {
                     const payload = {
                         action: 'update',
-                        dateStr: day.dateStr,
-                        oldName: oldActivity.name,
+                        dateStr: dateInput,            // NEW date value
+                        originalDateStr: originalDateStr,  // Original date to find the row
+                        oldName: originalName,         // Original name to find the row
                         dayNumber: calculatedDayNumber,
                         dayTitle: finalDayTitle,
                         name: nameInput,
@@ -2771,6 +2776,8 @@
                         time: timeInput
                     };
 
+                    console.log('📤 Updating activity in Sheets:', payload);
+
                     await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
                         mode: 'no-cors',
@@ -2778,9 +2785,9 @@
                         body: JSON.stringify(payload)
                     });
 
-                    console.log('✅ Activity updated in Google Sheets');
+                    console.log('✅ Activity update sent to Google Sheets');
                 } catch (error) {
-                    console.error('Failed to update activity:', error);
+                    console.error('❌ Failed to update activity:', error);
                 }
 
                 // Update local data
@@ -2804,7 +2811,7 @@
                 render();
 
                 // Show success message
-                errorDiv.innerHTML = '<div class="success-message">✅ Updated & synced to Sheets!</div>';
+                errorDiv.innerHTML = '<div class="success-message">✅ Updated & synced! Fernanda will see changes.</div>';
                 setTimeout(() => {
                     errorDiv.innerHTML = '';
                 }, 3000);
