@@ -2055,7 +2055,10 @@
                     if (!a.time && !b.time) return 0;
                     if (!a.time) return 1;
                     if (!b.time) return -1;
-                    return a.time.localeCompare(b.time);
+                    // Normalize times to HH:MM format for proper comparison
+                    const timeA = a.time.padStart(5, '0');
+                    const timeB = b.time.padStart(5, '0');
+                    return timeA.localeCompare(timeB);
                 });
             });
 
@@ -2480,7 +2483,11 @@
                     if (!a.time && !b.time) return 0;
                     if (!a.time) return 1;
                     if (!b.time) return -1;
-                    return a.time.localeCompare(b.time);
+
+                    // Normalize times to HH:MM format for proper comparison
+                    const timeA = a.time.padStart(5, '0'); // "9:40" becomes "09:40"
+                    const timeB = b.time.padStart(5, '0');
+                    return timeA.localeCompare(timeB);
                 });
                 const afterSort = day.activities.map(a => a.name + ' (' + (a.time || 'no time') + ')');
 
@@ -2666,7 +2673,10 @@
                 if (!a.time && !b.time) return 0;
                 if (!a.time) return 1;
                 if (!b.time) return -1;
-                return a.time.localeCompare(b.time);
+                // Normalize times to HH:MM format for proper comparison
+                const timeA = a.time.padStart(5, '0');
+                const timeB = b.time.padStart(5, '0');
+                return timeA.localeCompare(timeB);
             });
 
             // Update cache
@@ -2851,7 +2861,10 @@
                     if (!a.time && !b.time) return 0;
                     if (!a.time) return 1;
                     if (!b.time) return -1;
-                    return a.time.localeCompare(b.time);
+                    // Normalize times to HH:MM format for proper comparison
+                    const timeA = a.time.padStart(5, '0');
+                    const timeB = b.time.padStart(5, '0');
+                    return timeA.localeCompare(timeB);
                 });
 
                 // Update cache
@@ -2979,7 +2992,10 @@
                         if (!a.time && !b.time) return 0;
                         if (!a.time) return 1;
                         if (!b.time) return -1;
-                        return a.time.localeCompare(b.time);
+                        // Normalize times to HH:MM format for proper comparison
+                        const timeA = a.time.padStart(5, '0');
+                        const timeB = b.time.padStart(5, '0');
+                        return timeA.localeCompare(timeB);
                     });
                 });
 
