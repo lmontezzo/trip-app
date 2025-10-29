@@ -2111,6 +2111,17 @@
                 const cached = localStorage.getItem('orlandoTripCache');
                 if (cached) {
                     tripData = JSON.parse(cached);
+
+                    // Ensure all activities are sorted by time
+                    tripData.days.forEach(day => {
+                        day.activities.sort((a, b) => {
+                            if (!a.time && !b.time) return 0;
+                            if (!a.time) return 1;
+                            if (!b.time) return -1;
+                            return a.time.localeCompare(b.time);
+                        });
+                    });
+
                     const cachedUpdate = localStorage.getItem('orlandoTripLastUpdate');
                     lastUpdate = cachedUpdate ? new Date(cachedUpdate) : null;
                     render();
@@ -2464,12 +2475,20 @@
                 }
 
                 // Sort activities by time before rendering
+                const beforeSort = day.activities.map(a => a.name + ' (' + (a.time || 'no time') + ')');
                 day.activities.sort((a, b) => {
                     if (!a.time && !b.time) return 0;
                     if (!a.time) return 1;
                     if (!b.time) return -1;
                     return a.time.localeCompare(b.time);
                 });
+                const afterSort = day.activities.map(a => a.name + ' (' + (a.time || 'no time') + ')');
+
+                if (dayIndex === 0) {
+                    console.log('🔀 Sorting day ' + day.dayTitle);
+                    console.log('  Before:', beforeSort);
+                    console.log('  After:', afterSort);
+                }
 
                 let activitiesHTML = '';
                 day.activities.forEach((activity, activityIndex) => {
@@ -2827,6 +2846,14 @@
                     time: timeInput
                 };
 
+                // Re-sort activities by time within this day
+                tripData.days[dayIndex].activities.sort((a, b) => {
+                    if (!a.time && !b.time) return 0;
+                    if (!a.time) return 1;
+                    if (!b.time) return -1;
+                    return a.time.localeCompare(b.time);
+                });
+
                 // Update cache
                 localStorage.setItem('orlandoTripCache', JSON.stringify(tripData));
 
@@ -2945,6 +2972,17 @@
             const cached = localStorage.getItem('orlandoTripCache');
             if (cached) {
                 tripData = JSON.parse(cached);
+
+                // Ensure all activities are sorted by time
+                tripData.days.forEach(day => {
+                    day.activities.sort((a, b) => {
+                        if (!a.time && !b.time) return 0;
+                        if (!a.time) return 1;
+                        if (!b.time) return -1;
+                        return a.time.localeCompare(b.time);
+                    });
+                });
+
                 const cachedUpdate = localStorage.getItem('orlandoTripLastUpdate');
                 lastUpdate = cachedUpdate ? new Date(cachedUpdate) : null;
                 render();
