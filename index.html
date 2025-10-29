@@ -9,9 +9,9 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#6366f1">
     <title>🏰 Orlando Trip</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏰</text></svg>">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
     <style>
         * {
             margin: 0;
@@ -2373,6 +2373,10 @@
                 // Close menu first
                 closeAllMenus();
 
+                // Show loading overlay
+                const overlay = document.getElementById('loadingOverlay');
+                overlay.classList.add('active');
+
                 // Sync deletion to Google Sheets
                 try {
                     const payload = {
@@ -2380,6 +2384,8 @@
                         dateStr: day.dateStr,
                         name: activity.name
                     };
+
+                    console.log('📤 Deleting from Sheets:', payload);
 
                     await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
@@ -2413,6 +2419,8 @@
                 setTimeout(() => {
                     errorDiv.innerHTML = '';
                 }, 3000);
+
+                overlay.classList.remove('active');
             } else {
                 closeAllMenus();
             }
@@ -2454,6 +2462,14 @@
                 if (!isToday) {
                     daySection.classList.add('collapsed');
                 }
+
+                // Sort activities by time before rendering
+                day.activities.sort((a, b) => {
+                    if (!a.time && !b.time) return 0;
+                    if (!a.time) return 1;
+                    if (!b.time) return -1;
+                    return a.time.localeCompare(b.time);
+                });
 
                 let activitiesHTML = '';
                 day.activities.forEach((activity, activityIndex) => {

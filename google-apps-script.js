@@ -134,14 +134,18 @@ function updateActivity(sheet, data) {
       Logger.log('✅ UPDATED row ' + (i + 1));
 
       // If dayTitle was changed, update ALL other activities on the same day
-      if (data.dayTitle) {
-        Logger.log('📝 Updating dayTitle for all activities on ' + newDateStr);
+      // Use the NEW date (after any date change) to determine which day to update
+      if (data.dayTitle && newDateStr) {
+        Logger.log('📝 Updating dayTitle "' + data.dayTitle + '" for all activities on ' + newDateStr);
         var updatedCount = 0;
 
-        for (var j = 1; j < values.length; j++) {
+        // Re-read the data range to get fresh values after the update
+        var freshValues = sheet.getDataRange().getValues();
+
+        for (var j = 1; j < freshValues.length; j++) {
           if (j === i) continue; // Skip the one we just updated
 
-          var otherRowDate = values[j][0];
+          var otherRowDate = freshValues[j][0];
           var otherRowDateStr = '';
 
           if (otherRowDate instanceof Date) {
@@ -153,13 +157,16 @@ function updateActivity(sheet, data) {
             otherRowDateStr = String(otherRowDate);
           }
 
+          Logger.log('  Checking row ' + (j + 1) + ': date=' + otherRowDateStr + ' vs target=' + newDateStr);
+
           if (otherRowDateStr === newDateStr) {
             sheet.getRange(j + 1, 3).setValue(data.dayTitle);
             updatedCount++;
+            Logger.log('    ✓ Updated row ' + (j + 1));
           }
         }
 
-        Logger.log('✅ Updated dayTitle for ' + updatedCount + ' other activities on same day');
+        Logger.log('✅ Updated dayTitle for ' + updatedCount + ' other activities on ' + newDateStr);
       }
 
       return ContentService
@@ -198,14 +205,18 @@ function updateActivity(sheet, data) {
       Logger.log('✅ UPDATED row ' + (i + 1));
 
       // If dayTitle was changed, update ALL other activities on the same day
-      if (data.dayTitle) {
-        Logger.log('📝 Updating dayTitle for all activities on ' + newDateStr);
+      // Use the NEW date (after any date change) to determine which day to update
+      if (data.dayTitle && newDateStr) {
+        Logger.log('📝 Updating dayTitle "' + data.dayTitle + '" for all activities on ' + newDateStr);
         var updatedCount = 0;
 
-        for (var j = 1; j < values.length; j++) {
+        // Re-read the data range to get fresh values after the update
+        var freshValues = sheet.getDataRange().getValues();
+
+        for (var j = 1; j < freshValues.length; j++) {
           if (j === i) continue; // Skip the one we just updated
 
-          var otherRowDate = values[j][0];
+          var otherRowDate = freshValues[j][0];
           var otherRowDateStr = '';
 
           if (otherRowDate instanceof Date) {
@@ -217,13 +228,16 @@ function updateActivity(sheet, data) {
             otherRowDateStr = String(otherRowDate);
           }
 
+          Logger.log('  Checking row ' + (j + 1) + ': date=' + otherRowDateStr + ' vs target=' + newDateStr);
+
           if (otherRowDateStr === newDateStr) {
             sheet.getRange(j + 1, 3).setValue(data.dayTitle);
             updatedCount++;
+            Logger.log('    ✓ Updated row ' + (j + 1));
           }
         }
 
-        Logger.log('✅ Updated dayTitle for ' + updatedCount + ' other activities on same day');
+        Logger.log('✅ Updated dayTitle for ' + updatedCount + ' other activities on ' + newDateStr);
       }
 
       return ContentService
