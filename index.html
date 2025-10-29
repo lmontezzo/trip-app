@@ -1252,32 +1252,13 @@
 
                 checklistData = parseChecklistCSV(csv);
 
-                // Load from localStorage for isDone states
-                const cached = localStorage.getItem('checklistCache');
-                if (cached) {
-                    const cachedData = JSON.parse(cached);
-                    // Merge isDone states from cache
-                    checklistData.lists.forEach(list => {
-                        const cachedList = cachedData.lists.find(l => l.name === list.name);
-                        if (cachedList) {
-                            Object.keys(list.categories).forEach(category => {
-                                const cachedCategory = cachedList.categories[category];
-                                if (cachedCategory) {
-                                    list.categories[category].forEach((item, idx) => {
-                                        if (cachedCategory[idx]) {
-                                            item.isDone = cachedCategory[idx].isDone;
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
+                // Save to localStorage (CSV is the source of truth - it has the latest from Sheets)
+                localStorage.setItem('checklistCache', JSON.stringify(checklistData));
 
                 renderChecklists();
                 statusDiv.textContent = `Last synced: ${new Date().toLocaleTimeString()}`;
 
-                console.log('✅ Checklists loaded!');
+                console.log('✅ Checklists loaded from Google Sheets!');
                 console.log('💡 TIP: Hold and drag the ☰ handle to reorder items within a category');
 
             } catch (error) {

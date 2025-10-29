@@ -39,35 +39,50 @@ function handleActivityAction(data) {
   }
 }
 
+// Convert YYYY-MM-DD string to Date object in Orlando timezone
+function parseDate(dateStr) {
+  if (!dateStr || !dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return dateStr;  // Return as-is if not in expected format
+  }
+
+  var parts = dateStr.split('-');
+  var year = parseInt(parts[0]);
+  var month = parseInt(parts[1]) - 1;  // Month is 0-indexed
+  var day = parseInt(parts[2]);
+
+  // Create date at noon in Orlando timezone (GMT-4) to avoid day shifts
+  return new Date(year, month, day, 12, 0, 0);
+}
+
 // Add new activity
 function addActivity(sheet, data) {
-  // Build row manually, field by field
-  var col_A = data.dateStr ? String(data.dateStr) : '';
-  var col_B = data.dayNumber ? String(data.dayNumber) : '';
-  var col_C = data.dayTitle ? String(data.dayTitle) : '';
-  var col_D = data.name ? String(data.name) : '';
-  var col_E = data.details ? String(data.details) : '';
-  var col_F = data.cost ? String(data.cost) : '';
+    // Build row manually, field by field
+  var col_A = parseDate(data.dateStr);
+    var col_B = data.dayNumber ? String(data.dayNumber) : '';
+    var col_C = data.dayTitle ? String(data.dayTitle) : '';
+    var col_D = data.name ? String(data.name) : '';
+    var col_E = data.details ? String(data.details) : '';
+    var col_F = data.cost ? String(data.cost) : '';
   var col_G = data.link ? String(data.link) : '';
   var col_H = data.category ? String(data.category) : 'Others';
   var col_I = data.location ? String(data.location) : '';
   var col_J = data.time ? String(data.time) : '';
 
-  Logger.log('COL A (Date): "' + col_A + '"');
-  Logger.log('COL B (DayNumber): "' + col_B + '"');
+    Logger.log('COL A (Date): "' + col_A + '"');
+    Logger.log('COL B (DayNumber): "' + col_B + '"');
   Logger.log('COL H (Category): "' + col_H + '"');
 
-  // Get the next empty row
-  var lastRow = sheet.getLastRow();
-  var targetRow = lastRow + 1;
+    // Get the next empty row
+    var lastRow = sheet.getLastRow();
+    var targetRow = lastRow + 1;
 
-  // Write to specific cells
-  sheet.getRange(targetRow, 1).setValue(col_A);  // A: Date
-  sheet.getRange(targetRow, 2).setValue(col_B);  // B: DayNumber
-  sheet.getRange(targetRow, 3).setValue(col_C);  // C: DayTitle
-  sheet.getRange(targetRow, 4).setValue(col_D);  // D: ActivityName
-  sheet.getRange(targetRow, 5).setValue(col_E);  // E: ActivityDetails
-  sheet.getRange(targetRow, 6).setValue(col_F);  // F: Cost
+    // Write to specific cells
+    sheet.getRange(targetRow, 1).setValue(col_A);  // A: Date
+    sheet.getRange(targetRow, 2).setValue(col_B);  // B: DayNumber
+    sheet.getRange(targetRow, 3).setValue(col_C);  // C: DayTitle
+    sheet.getRange(targetRow, 4).setValue(col_D);  // D: ActivityName
+    sheet.getRange(targetRow, 5).setValue(col_E);  // E: ActivityDetails
+    sheet.getRange(targetRow, 6).setValue(col_F);  // F: Cost
   sheet.getRange(targetRow, 7).setValue(col_G);  // G: Link
   sheet.getRange(targetRow, 8).setValue(col_H);  // H: Category
   sheet.getRange(targetRow, 9).setValue(col_I);  // I: Location
@@ -119,8 +134,27 @@ function updateActivity(sheet, data) {
 
       Logger.log('✅ FOUND at row ' + (i + 1) + '! Updating...');
 
+      // If dayTitle is being changed, find all rows with the SAME dayNumber BEFORE updating
+      var rowsToUpdateTitle = [];
+      var titleUpdateCount = 0;
+      if (data.dayTitle && data.dayNumber) {
+        Logger.log('📝 Finding all activities with dayNumber=' + data.dayNumber + ' to update dayTitle');
+
+        for (var j = 1; j < values.length; j++) {
+          var checkDayNumber = String(values[j][1]);  // Column B is dayNumber
+
+          // Match against the dayNumber
+          if (checkDayNumber === String(data.dayNumber)) {
+            rowsToUpdateTitle.push(j + 1);
+            Logger.log('    ✓ Found row ' + (j + 1) + ' with dayNumber ' + checkDayNumber);
+          }
+        }
+
+        Logger.log('✅ Found ' + rowsToUpdateTitle.length + ' activities with dayNumber=' + data.dayNumber);
+      }
+
       // Update this specific activity
-      sheet.getRange(i + 1, 1).setValue(newDateStr || '');
+      sheet.getRange(i + 1, 1).setValue(parseDate(newDateStr) || '');
       sheet.getRange(i + 1, 2).setValue(data.dayNumber || '');
       sheet.getRange(i + 1, 3).setValue(data.dayTitle || '');
       sheet.getRange(i + 1, 4).setValue(data.name || '');
@@ -133,40 +167,17 @@ function updateActivity(sheet, data) {
 
       Logger.log('✅ UPDATED row ' + (i + 1));
 
-      // If dayTitle was changed, update ALL other activities on the same day
-      // Use the NEW date (after any date change) to determine which day to update
-      if (data.dayTitle && newDateStr) {
-        Logger.log('📝 Updating dayTitle "' + data.dayTitle + '" for all activities on ' + newDateStr);
-        var updatedCount = 0;
+      // Update dayTitle for all rows we found earlier
+      if (data.dayTitle && rowsToUpdateTitle.length > 0) {
+        Logger.log('📝 Updating dayTitle for ' + rowsToUpdateTitle.length + ' rows');
 
-        // Re-read the data range to get fresh values after the update
-        var freshValues = sheet.getDataRange().getValues();
+        rowsToUpdateTitle.forEach(function(rowNum) {
+          sheet.getRange(rowNum, 3).setValue(data.dayTitle);
+          titleUpdateCount++;
+          Logger.log('    ✓ Updated row ' + rowNum + ' dayTitle');
+        });
 
-        for (var j = 1; j < freshValues.length; j++) {
-          if (j === i) continue; // Skip the one we just updated
-
-          var otherRowDate = freshValues[j][0];
-          var otherRowDateStr = '';
-
-          if (otherRowDate instanceof Date) {
-            var y = otherRowDate.getFullYear();
-            var m = String(otherRowDate.getMonth() + 1).padStart(2, '0');
-            var d = String(otherRowDate.getDate()).padStart(2, '0');
-            otherRowDateStr = y + '-' + m + '-' + d;
-          } else {
-            otherRowDateStr = String(otherRowDate);
-          }
-
-          Logger.log('  Checking row ' + (j + 1) + ': date=' + otherRowDateStr + ' vs target=' + newDateStr);
-
-          if (otherRowDateStr === newDateStr) {
-            sheet.getRange(j + 1, 3).setValue(data.dayTitle);
-            updatedCount++;
-            Logger.log('    ✓ Updated row ' + (j + 1));
-          }
-        }
-
-        Logger.log('✅ Updated dayTitle for ' + updatedCount + ' other activities on ' + newDateStr);
+        Logger.log('✅ Updated dayTitle for ' + titleUpdateCount + ' activities with dayNumber=' + data.dayNumber);
       }
 
       return ContentService
@@ -174,7 +185,7 @@ function updateActivity(sheet, data) {
           success: true,
           message: 'Activity updated',
           row: i + 1,
-          dayTitleUpdates: updatedCount || 0
+          dayTitleUpdates: titleUpdateCount
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -190,8 +201,27 @@ function updateActivity(sheet, data) {
     if (rowName === oldName) {
       Logger.log('✅ FOUND by name only at row ' + (i + 1) + '! Updating...');
 
+      // If dayTitle is being changed, find all rows with the SAME date BEFORE updating
+      var rowsToUpdateTitle = [];
+      var titleUpdateCount = 0;
+      if (data.dayTitle && data.dayNumber) {
+        Logger.log('📝 Finding all activities with dayNumber=' + data.dayNumber + ' to update dayTitle');
+
+        for (var j = 1; j < values.length; j++) {
+          var checkDayNumber = String(values[j][1]);  // Column B is dayNumber
+
+          // Match against the dayNumber
+          if (checkDayNumber === String(data.dayNumber)) {
+            rowsToUpdateTitle.push(j + 1);
+            Logger.log('    ✓ Found row ' + (j + 1) + ' with dayNumber ' + checkDayNumber);
+          }
+        }
+
+        Logger.log('✅ Found ' + rowsToUpdateTitle.length + ' activities with dayNumber=' + data.dayNumber);
+      }
+
       // Update this specific activity
-      sheet.getRange(i + 1, 1).setValue(newDateStr || '');
+      sheet.getRange(i + 1, 1).setValue(parseDate(newDateStr) || '');
       sheet.getRange(i + 1, 2).setValue(data.dayNumber || '');
       sheet.getRange(i + 1, 3).setValue(data.dayTitle || '');
       sheet.getRange(i + 1, 4).setValue(data.name || '');
@@ -204,40 +234,17 @@ function updateActivity(sheet, data) {
 
       Logger.log('✅ UPDATED row ' + (i + 1));
 
-      // If dayTitle was changed, update ALL other activities on the same day
-      // Use the NEW date (after any date change) to determine which day to update
-      if (data.dayTitle && newDateStr) {
-        Logger.log('📝 Updating dayTitle "' + data.dayTitle + '" for all activities on ' + newDateStr);
-        var updatedCount = 0;
+      // Update dayTitle for all rows we found earlier
+      if (data.dayTitle && rowsToUpdateTitle.length > 0) {
+        Logger.log('📝 Updating dayTitle for ' + rowsToUpdateTitle.length + ' rows');
 
-        // Re-read the data range to get fresh values after the update
-        var freshValues = sheet.getDataRange().getValues();
+        rowsToUpdateTitle.forEach(function(rowNum) {
+          sheet.getRange(rowNum, 3).setValue(data.dayTitle);
+          titleUpdateCount++;
+          Logger.log('    ✓ Updated row ' + rowNum + ' dayTitle');
+        });
 
-        for (var j = 1; j < freshValues.length; j++) {
-          if (j === i) continue; // Skip the one we just updated
-
-          var otherRowDate = freshValues[j][0];
-          var otherRowDateStr = '';
-
-          if (otherRowDate instanceof Date) {
-            var y = otherRowDate.getFullYear();
-            var m = String(otherRowDate.getMonth() + 1).padStart(2, '0');
-            var d = String(otherRowDate.getDate()).padStart(2, '0');
-            otherRowDateStr = y + '-' + m + '-' + d;
-          } else {
-            otherRowDateStr = String(otherRowDate);
-          }
-
-          Logger.log('  Checking row ' + (j + 1) + ': date=' + otherRowDateStr + ' vs target=' + newDateStr);
-
-          if (otherRowDateStr === newDateStr) {
-            sheet.getRange(j + 1, 3).setValue(data.dayTitle);
-            updatedCount++;
-            Logger.log('    ✓ Updated row ' + (j + 1));
-          }
-        }
-
-        Logger.log('✅ Updated dayTitle for ' + updatedCount + ' other activities on ' + newDateStr);
+        Logger.log('✅ Updated dayTitle for ' + titleUpdateCount + ' activities with dayNumber=' + data.dayNumber);
       }
 
       return ContentService
@@ -245,7 +252,7 @@ function updateActivity(sheet, data) {
           success: true,
           message: 'Activity updated (found by name)',
           row: i + 1,
-          dayTitleUpdates: updatedCount || 0
+          dayTitleUpdates: titleUpdateCount
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -462,20 +469,20 @@ function editChecklistItem(sheet, data) {
 
       Logger.log('✅ UPDATED item name at row ' + (i + 1) + ': "' + oldItemName + '" -> "' + newItemName + '"');
 
-      return ContentService
-        .createTextOutput(JSON.stringify({
-          success: true,
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: true,
           message: 'Item name updated'
-        }))
-        .setMimeType(ContentService.MimeType.JSON);
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
     }
   }
 
   Logger.log('❌ ITEM NOT FOUND for edit');
 
-  return ContentService
-    .createTextOutput(JSON.stringify({
-      success: false,
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: false,
       error: 'Item not found: ' + oldItemName
     }))
     .setMimeType(ContentService.MimeType.JSON);
@@ -504,9 +511,9 @@ function deleteChecklistItem(sheet, data) {
         .createTextOutput(JSON.stringify({
           success: true,
           message: 'Item deleted'
-        }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   }
 
   return ContentService
@@ -613,24 +620,79 @@ function testAddChecklistItem() {
 function testUpdateActivity() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet1');
 
-  // Test updating the "🛍️ Teste" activity
+  // Test updating "🚗 Return Rental Car" on Nov 8 (Row 24)
   var testData = {
     action: 'update',
     originalDateStr: '2025-11-08',
-    oldName: '🛍️ Teste',
-    dateStr: '2025-11-08',
+    oldName: '🚗 Return Rental Car',
+    dateStr: '2025-11-08',  // Keep same date
     dayNumber: '8',
-    dayTitle: 'Dia 8',
-    name: '🛍️ Teste',
-    details: '',
-    cost: '999.99',  // Try updating to this
+    dayTitle: 'UPDATED NOV 8 TITLE!!!',  // Should update rows 24 AND 25
+    name: '🚗 Return Rental Car',
+    details: 'ORLANDO INTL ARPT (MCO)',
+    cost: '',
     link: '',
-    category: 'Shopping',
+    category: 'Car',
     location: '',
-    time: '21:07'
+    time: '10:00'
   };
 
+  Logger.log('═══════════════════════════════════════');
   Logger.log('Testing updateActivity function...');
+  Logger.log('Looking for: Date=2025-11-08, Name=🚗 Return Rental Car');
+  Logger.log('Will update dayTitle to: UPDATED NOV 8 TITLE!!!');
+  Logger.log('Expected: Rows 24 AND 25 get new dayTitle (both Nov 8)');
+  Logger.log('Expected: Other days (Nov 6, Nov 9) should NOT change');
+  Logger.log('═══════════════════════════════════════');
+
   var result = updateActivity(sheet, testData);
   Logger.log('Result: ' + result.getContent());
+
+  Logger.log('═══════════════════════════════════════');
+  Logger.log('✅ TEST COMPLETE');
+  Logger.log('Check your sheet - all Nov 7 activities should have:');
+  Logger.log('  "TEST DAY TITLE UPDATED!" in column C');
+  Logger.log('═══════════════════════════════════════');
+}
+
+// Test function - Check what dates exist in sheet
+function debugListAllDates() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet1');
+  var values = sheet.getDataRange().getValues();
+
+  Logger.log('═══════════════════════════════════════');
+  Logger.log('ALL DATES IN SHEET:');
+  Logger.log('═══════════════════════════════════════');
+
+  var dateGroups = {};
+
+  for (var i = 1; i < values.length; i++) {
+    var rowDate = values[i][0];
+    var rowName = values[i][3];
+    var rowDateStr = '';
+
+    if (rowDate instanceof Date) {
+      var y = rowDate.getFullYear();
+      var m = String(rowDate.getMonth() + 1).padStart(2, '0');
+      var d = String(rowDate.getDate()).padStart(2, '0');
+      rowDateStr = y + '-' + m + '-' + d;
+    } else {
+      rowDateStr = String(rowDate);
+    }
+
+    if (!dateGroups[rowDateStr]) {
+      dateGroups[rowDateStr] = [];
+    }
+
+    dateGroups[rowDateStr].push('Row ' + (i + 1) + ': ' + rowName);
+  }
+
+  Object.keys(dateGroups).sort().forEach(function(date) {
+    Logger.log('\n📅 ' + date + ' (' + dateGroups[date].length + ' activities):');
+    dateGroups[date].forEach(function(activity) {
+      Logger.log('  ' + activity);
+    });
+  });
+
+  Logger.log('\n═══════════════════════════════════════');
 }
