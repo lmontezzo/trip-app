@@ -119,7 +119,7 @@ function updateActivity(sheet, data) {
 
       Logger.log('✅ FOUND at row ' + (i + 1) + '! Updating...');
 
-      // Update all fields (use the NEW dateStr in case date was changed)
+      // Update this specific activity
       sheet.getRange(i + 1, 1).setValue(newDateStr || '');
       sheet.getRange(i + 1, 2).setValue(data.dayNumber || '');
       sheet.getRange(i + 1, 3).setValue(data.dayTitle || '');
@@ -131,19 +131,113 @@ function updateActivity(sheet, data) {
       sheet.getRange(i + 1, 9).setValue(data.location || '');
       sheet.getRange(i + 1, 10).setValue(data.time || '');
 
-      Logger.log('✅ UPDATED all 10 columns at row ' + (i + 1));
+      Logger.log('✅ UPDATED row ' + (i + 1));
+
+      // If dayTitle was changed, update ALL other activities on the same day
+      if (data.dayTitle) {
+        Logger.log('📝 Updating dayTitle for all activities on ' + newDateStr);
+        var updatedCount = 0;
+
+        for (var j = 1; j < values.length; j++) {
+          if (j === i) continue; // Skip the one we just updated
+
+          var otherRowDate = values[j][0];
+          var otherRowDateStr = '';
+
+          if (otherRowDate instanceof Date) {
+            var y = otherRowDate.getFullYear();
+            var m = String(otherRowDate.getMonth() + 1).padStart(2, '0');
+            var d = String(otherRowDate.getDate()).padStart(2, '0');
+            otherRowDateStr = y + '-' + m + '-' + d;
+          } else {
+            otherRowDateStr = String(otherRowDate);
+          }
+
+          if (otherRowDateStr === newDateStr) {
+            sheet.getRange(j + 1, 3).setValue(data.dayTitle);
+            updatedCount++;
+          }
+        }
+
+        Logger.log('✅ Updated dayTitle for ' + updatedCount + ' other activities on same day');
+      }
 
       return ContentService
         .createTextOutput(JSON.stringify({
           success: true,
           message: 'Activity updated',
-          row: i + 1
+          row: i + 1,
+          dayTitleUpdates: updatedCount || 0
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
   }
 
-  Logger.log('❌ Activity NOT FOUND - Date: "' + originalDateStr + '", Name: "' + oldName + '"');
+  Logger.log('❌ Activity NOT FOUND with exact date match');
+  Logger.log('🔍 Trying to find by name only...');
+
+  // Try finding by name only as fallback
+  for (var i = 1; i < values.length; i++) {
+    var rowName = values[i][3];
+
+    if (rowName === oldName) {
+      Logger.log('✅ FOUND by name only at row ' + (i + 1) + '! Updating...');
+
+      // Update this specific activity
+      sheet.getRange(i + 1, 1).setValue(newDateStr || '');
+      sheet.getRange(i + 1, 2).setValue(data.dayNumber || '');
+      sheet.getRange(i + 1, 3).setValue(data.dayTitle || '');
+      sheet.getRange(i + 1, 4).setValue(data.name || '');
+      sheet.getRange(i + 1, 5).setValue(data.details || '');
+      sheet.getRange(i + 1, 6).setValue(data.cost || '');
+      sheet.getRange(i + 1, 7).setValue(data.link || '');
+      sheet.getRange(i + 1, 8).setValue(data.category || 'Others');
+      sheet.getRange(i + 1, 9).setValue(data.location || '');
+      sheet.getRange(i + 1, 10).setValue(data.time || '');
+
+      Logger.log('✅ UPDATED row ' + (i + 1));
+
+      // If dayTitle was changed, update ALL other activities on the same day
+      if (data.dayTitle) {
+        Logger.log('📝 Updating dayTitle for all activities on ' + newDateStr);
+        var updatedCount = 0;
+
+        for (var j = 1; j < values.length; j++) {
+          if (j === i) continue; // Skip the one we just updated
+
+          var otherRowDate = values[j][0];
+          var otherRowDateStr = '';
+
+          if (otherRowDate instanceof Date) {
+            var y = otherRowDate.getFullYear();
+            var m = String(otherRowDate.getMonth() + 1).padStart(2, '0');
+            var d = String(otherRowDate.getDate()).padStart(2, '0');
+            otherRowDateStr = y + '-' + m + '-' + d;
+          } else {
+            otherRowDateStr = String(otherRowDate);
+          }
+
+          if (otherRowDateStr === newDateStr) {
+            sheet.getRange(j + 1, 3).setValue(data.dayTitle);
+            updatedCount++;
+          }
+        }
+
+        Logger.log('✅ Updated dayTitle for ' + updatedCount + ' other activities on same day');
+      }
+
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: true,
+          message: 'Activity updated (found by name)',
+          row: i + 1,
+          dayTitleUpdates: updatedCount || 0
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  Logger.log('❌ Activity NOT FOUND even by name: "' + oldName + '"');
 
   return ContentService
     .createTextOutput(JSON.stringify({
@@ -163,6 +257,8 @@ function deleteActivity(sheet, data) {
   // Find the row
   var dataRange = sheet.getDataRange();
   var values = dataRange.getValues();
+
+  Logger.log('📊 Searching ' + (values.length - 1) + ' rows...');
 
   for (var i = 1; i < values.length; i++) {
     var rowDate = values[i][0];
@@ -188,13 +284,37 @@ function deleteActivity(sheet, data) {
       return ContentService
         .createTextOutput(JSON.stringify({
           success: true,
-          message: 'Activity deleted'
+          message: 'Activity deleted',
+          row: i + 1
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
   }
 
-  Logger.log('❌ Activity not found for delete');
+  // Try finding by name only as fallback
+  Logger.log('❌ Not found with date match, trying by name only...');
+
+  for (var i = 1; i < values.length; i++) {
+    var rowName = values[i][3];
+
+    if (rowName === activityName) {
+      Logger.log('✅ FOUND by name only at row ' + (i + 1) + '! Deleting...');
+
+      sheet.deleteRow(i + 1);
+
+      Logger.log('✅ DELETED activity at row ' + (i + 1));
+
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: true,
+          message: 'Activity deleted (found by name)',
+          row: i + 1
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  Logger.log('❌ Activity not found for delete: "' + activityName + '"');
 
   return ContentService
     .createTextOutput(JSON.stringify({
