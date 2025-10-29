@@ -102,7 +102,20 @@ function updateActivity(sheet, data) {
     var rowDate = values[i][0];
     var rowName = values[i][3];
 
-    if (rowDate === originalDateStr && rowName === oldName) {
+    // Convert date to YYYY-MM-DD format for comparison
+    var rowDateStr = '';
+    if (rowDate instanceof Date) {
+      var year = rowDate.getFullYear();
+      var month = String(rowDate.getMonth() + 1).padStart(2, '0');
+      var day = String(rowDate.getDate()).padStart(2, '0');
+      rowDateStr = year + '-' + month + '-' + day;
+    } else {
+      rowDateStr = String(rowDate);
+    }
+
+    Logger.log('  Row ' + (i + 1) + ': DateStr="' + rowDateStr + '", Name="' + rowName + '"');
+
+    if (rowDateStr === originalDateStr && rowName === oldName) {
 
       Logger.log('✅ FOUND at row ' + (i + 1) + '! Updating...');
 
@@ -131,10 +144,6 @@ function updateActivity(sheet, data) {
   }
 
   Logger.log('❌ Activity NOT FOUND - Date: "' + originalDateStr + '", Name: "' + oldName + '"');
-  Logger.log('💡 First few rows in sheet:');
-  for (var j = 1; j < Math.min(5, values.length); j++) {
-    Logger.log('  Row ' + (j + 1) + ': Date="' + values[j][0] + '", Name="' + values[j][3] + '"');
-  }
 
   return ContentService
     .createTextOutput(JSON.stringify({
@@ -156,7 +165,21 @@ function deleteActivity(sheet, data) {
   var values = dataRange.getValues();
 
   for (var i = 1; i < values.length; i++) {
-    if (values[i][0] === dateStr && values[i][3] === activityName) {
+    var rowDate = values[i][0];
+    var rowName = values[i][3];
+
+    // Convert date to YYYY-MM-DD format for comparison
+    var rowDateStr = '';
+    if (rowDate instanceof Date) {
+      var year = rowDate.getFullYear();
+      var month = String(rowDate.getMonth() + 1).padStart(2, '0');
+      var day = String(rowDate.getDate()).padStart(2, '0');
+      rowDateStr = year + '-' + month + '-' + day;
+    } else {
+      rowDateStr = String(rowDate);
+    }
+
+    if (rowDateStr === dateStr && rowName === activityName) {
 
       sheet.deleteRow(i + 1);
 
@@ -450,4 +473,30 @@ function testAddChecklistItem() {
   Logger.log('Test checklist data: ' + JSON.stringify(rowData));
   sheet.appendRow(rowData);
   Logger.log('Test checklist item added successfully!');
+}
+
+// Test function - Update Activity
+function testUpdateActivity() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet1');
+
+  // Test updating the "🛍️ Teste" activity
+  var testData = {
+    action: 'update',
+    originalDateStr: '2025-11-08',
+    oldName: '🛍️ Teste',
+    dateStr: '2025-11-08',
+    dayNumber: '8',
+    dayTitle: 'Dia 8',
+    name: '🛍️ Teste',
+    details: '',
+    cost: '999.99',  // Try updating to this
+    link: '',
+    category: 'Shopping',
+    location: '',
+    time: '21:07'
+  };
+
+  Logger.log('Testing updateActivity function...');
+  var result = updateActivity(sheet, testData);
+  Logger.log('Result: ' + result.getContent());
 }
